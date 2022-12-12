@@ -23,6 +23,7 @@ interface ISPlayerState {
     enEnabled: boolean;
     ruEnabled: boolean;
     pause: number;
+    MoveNextItemAutomatically:boolean;
     items: any[]
 }
 
@@ -105,6 +106,7 @@ export class SPlayer extends React.Component<any, ISPlayerState> {
             enEnabled: true,
             ruEnabled: true,
             pause: 50, //unit: 0.1 second 
+            MoveNextItemAutomatically:true,
             items: []
         }
         this.aref = createRef();
@@ -179,8 +181,7 @@ export class SPlayer extends React.Component<any, ISPlayerState> {
                 await wait();
             }
         }
-
-        for (let i: number = 0; i < this.state.items.length; i++) {
+        for (let i: number = 0; i < this.state.items.length; ) {
             let currItem = this.state.items[i];
             this.setState({ startTime: currItem.startTime, endTime: currItem.endTime, isMP3Playing: true, sayText: currItem.en }, () => {
                 this.playMP3Fragment()
@@ -207,6 +208,9 @@ export class SPlayer extends React.Component<any, ISPlayerState> {
                 await waitWhile(() => this.state.isPaused); //wait switching to this.state.isPaused == false    
             }
             await wait(this.state.pause*100);
+            if(this.state.MoveNextItemAutomatically){
+                i++;
+            }
         }
     }
 
@@ -251,6 +255,7 @@ export class SPlayer extends React.Component<any, ISPlayerState> {
         let mp3ButtonClassStr = (this.state.mp3Enabled ? "toolbar-button toolbar-button__text toolbar-button__enabled" : "toolbar-button toolbar-button__text toolbar-button__disabled")
         let enButtonClassStr = (this.state.enEnabled ? "toolbar-button toolbar-button__text toolbar-button__enabled" : "toolbar-button toolbar-button__text toolbar-button__disabled")
         let ruButtonClassStr = (this.state.ruEnabled ? "toolbar-button toolbar-button__text toolbar-button__enabled" : "toolbar-button toolbar-button__text toolbar-button__disabled")
+        let moveNextItemClassStr = (this.state.MoveNextItemAutomatically ? "toolbar-button toolbar-button__text toolbar-button__enabled" : "toolbar-button toolbar-button__text toolbar-button__disabled")
         return (
             <div className="splayer-page">
                 <div className="splayer-page__toolbar">
@@ -271,6 +276,10 @@ export class SPlayer extends React.Component<any, ISPlayerState> {
                         this.setState({ ruEnabled: !this.state.ruEnabled });
                     }}>RU</button>
                     <PauseTuner parent={this} />
+                    <button className={moveNextItemClassStr} onClick={() => {
+                        this.setState({ MoveNextItemAutomatically: !this.state.MoveNextItemAutomatically});
+                    }}>next</button>
+
                 </div>
 
                 <audio ref={this.aref} src={this.state.url} loop={true} onTimeUpdate={(e) => {
