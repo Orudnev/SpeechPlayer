@@ -28,6 +28,8 @@
 .splayer-page__toolbar{
     margin-bottom: 10px;
     display: flex;
+    flex-wrap: wrap;
+    row-gap: 10px;
 }
 
 .toolbar-button{
@@ -59,6 +61,36 @@
     margin-left: -3px;
 }
 
+.splayer_page__text{
+    font-size: 30px;
+}
+
+.pause-tuner{
+    background-color: blanchedalmond;
+    border-left: 2px red;
+    border-radius: 10px;
+    width: 48px;
+    height: 60px; 
+    line-height: 60px;
+    text-align: center;
+    margin-right: 10px;
+    border-left: solid 8px red;
+    border-right:solid 8px red;
+    border-top: solid 2px lightgray;
+    border-bottom: solid 2px lightgray;
+}
+ 
+.pause-tuner>#label{
+    position: relative;
+    top: -20px;
+} 
+.pause-tuner>#value{
+    position: relative;
+    top: -55px;
+    font-weight: 700;
+} 
+
+
 
 .img32Icondiv{
     width: 32px;
@@ -83,3 +115,8 @@
     background-size: 54px;
 }
 
+.prevent-select {
+    -webkit-user-select: none; /* Safari */
+    -ms-user-select: none; /* IE 10 and IE 11 */
+    user-select: none; /* Standard syntax */
+  }

@@ -1,7 +1,8 @@
-import React, { createRef } from 'react';
+import React, { createRef, useState } from 'react';
 import JSZip from 'jszip';
 //@ts-ignore
 import { SayButton } from 'react-say';
+import { waitFor } from '@testing-library/react';
 
 enum langEnum {
     enUs = "en-US",
@@ -18,9 +19,10 @@ interface ISPlayerState {
     lang: langEnum,
     sayText: string,
     isPaused: boolean;
-    mp3Enabled:boolean;
-    enEnabled:boolean;
-    ruEnabled:boolean;
+    mp3Enabled: boolean;
+    enEnabled: boolean;
+    ruEnabled: boolean;
+    pause: number;
     items: any[]
 }
 
@@ -36,9 +38,57 @@ const selector = (voices: any) => {
     //Google русский
 }
 
+interface IPauseTunerProps {
+    parent: SPlayer;
+}
+
+const PauseTuner = (props: IPauseTunerProps) => {
+    async function wait(ms = 100) {
+        return new Promise(resolve => {
+            setTimeout(resolve, ms)
+        });
+    }
+    async function waitWhile(conditionFunc: () => boolean) {
+        while (conditionFunc()) {
+            await wait();
+        }
+    }
+    const handleMouseDown = (e: any) => {
+        changePauseValue(e);
+    };
+
+    const changePauseValue = (e: any) => {
+        let elmRect = e.target.getBoundingClientRect();
+        let middleX = elmRect.left + elmRect.width / 2;
+        let state = props.parent.state;
+        let touchX = e.touches[0].clientX;
+        if (touchX > middleX) {
+            //right button clicked
+            props.parent.setState({ pause: state.pause + 1 });
+        } else {
+            //left button clicked
+            props.parent.setState({ pause: state.pause - 1 });
+        }
+        if (props.parent.touchState > 0) {
+            setTimeout(() => changePauseValue(e), 100);
+        }
+    }
+
+
+    return (
+        <div className="pause-tuner prevent-select" onTouchStart={(e) => setTimeout(() => {
+            handleMouseDown(e);
+        }, 100)}>
+            <div id="label" >pause</div>
+            <div id="value">{props.parent.state.pause}</div>
+        </div>
+    );
+}
+
 export class SPlayer extends React.Component<any, ISPlayerState> {
     aref: React.RefObject<HTMLAudioElement>;
     sayBtnWrapperRef: React.RefObject<HTMLDivElement>;
+    touchState: number = 0;
     constructor(props: any) {
         super(props);
         this.state = {
@@ -51,15 +101,18 @@ export class SPlayer extends React.Component<any, ISPlayerState> {
             lang: langEnum.ruRu,
             sayText: "",
             isPaused: false,
-            mp3Enabled:true,
-            enEnabled:true,
-            ruEnabled:true,
+            mp3Enabled: true,
+            enEnabled: true,
+            ruEnabled: true,
+            pause: 50, //unit: 0.1 second 
             items: []
         }
         this.aref = createRef();
         this.sayBtnWrapperRef = createRef();
         this.onBinToStringConverted = this.onBinToStringConverted.bind(this);
         this.langSelector = this.langSelector.bind(this);
+        this.onTouchStart = this.onTouchStart.bind(this);
+        this.onTouchEnd = this.onTouchEnd.bind(this);
     }
 
     langSelector(voices: any) {
@@ -71,10 +124,21 @@ export class SPlayer extends React.Component<any, ISPlayerState> {
 
     componentDidMount(): void {
         binToStringConverter.addEventListener("loadend", this.onBinToStringConverted);
+        window.addEventListener("touchstart", this.onTouchStart);
+        window.addEventListener("touchend", this.onTouchEnd);
+    }
+
+    onTouchStart() {
+        this.touchState++;
+    }
+    onTouchEnd() {
+        this.touchState--;
     }
 
     componentWillUnmount(): void {
         binToStringConverter.removeEventListener("loadend", this.onBinToStringConverted);
+        window.removeEventListener("touchstart", this.onTouchStart);
+        window.removeEventListener("touchend", this.onTouchEnd);
     }
 
     onBinToStringConverted(e: any) {
@@ -100,6 +164,10 @@ export class SPlayer extends React.Component<any, ISPlayerState> {
         // this.setState({ file: selFile, url: URL.createObjectURL(selFile as Blob) })
     }
 
+    handlePauseButtonClick() {
+        this.setState({ isPaused: !this.state.isPaused });
+    }
+
     async handleStartButtonClick() {
         async function wait(ms = 200) {
             return new Promise(resolve => {
@@ -117,35 +185,40 @@ export class SPlayer extends React.Component<any, ISPlayerState> {
             this.setState({ startTime: currItem.startTime, endTime: currItem.endTime, isMP3Playing: true, sayText: currItem.en }, () => {
                 this.playMP3Fragment()
             });
-            await waitWhile(() => this.state.isMP3Playing === false); //wait state.isPlaying == true (MP3 fragment playing start)
-            await waitWhile(() => this.state.isMP3Playing === true); //wait state.isPlaying == false (MP3 fragment playing end)
-            await waitWhile(() => this.state.isPaused); //wait switching to this.state.isPaused == false
+            if (this.state.mp3Enabled) {
+                await waitWhile(() => this.state.isMP3Playing === false); //wait state.isPlaying == true (MP3 fragment playing start)
+                await waitWhile(() => this.state.isMP3Playing === true); //wait state.isPlaying == false (MP3 fragment playing end)
+                await waitWhile(() => this.state.isPaused); //wait switching to this.state.isPaused == false   
+            }
 
-            this.setState({ lang: langEnum.enUs, sayText: currItem.en, isSayBtnPlaying: true });
-            await waitWhile(() => this.state.isSayBtnPlaying === false); //wait state.isSayBtnPlaying == true (Say button fragment playing start)            
-            this.playSayButton();
-            await waitWhile(() => this.state.isSayBtnPlaying === true); //wait state.isSayBtnPlaying == false (Say button fragment playing end)            
-            await waitWhile(() => this.state.isPaused); //wait switching to this.state.isPaused == false
+            if (this.state.enEnabled) {
+                this.setState({ lang: langEnum.enUs, sayText: currItem.en, isSayBtnPlaying: true });
+                await waitWhile(() => this.state.isSayBtnPlaying === false); //wait state.isSayBtnPlaying == true (Say button fragment playing start)            
+                this.playSayButton();
+                await waitWhile(() => this.state.isSayBtnPlaying === true); //wait state.isSayBtnPlaying == false (Say button fragment playing end)            
+                await waitWhile(() => this.state.isPaused); //wait switching to this.state.isPaused == false    
+            }
 
-            this.setState({ lang: langEnum.ruRu, sayText: currItem.ru, isSayBtnPlaying: true });
-            await waitWhile(() => this.state.isSayBtnPlaying === false); //wait state.isSayBtnPlaying == true (Say button fragment playing start)            
-            this.playSayButton();
-            await waitWhile(() => this.state.isSayBtnPlaying === true); //wait state.isSayBtnPlaying == false (Say button fragment playing end)  
-            await waitWhile(() => this.state.isPaused); //wait switching to this.state.isPaused == false
-
+            if (this.state.ruEnabled) {
+                this.setState({ lang: langEnum.ruRu, sayText: currItem.ru, isSayBtnPlaying: true });
+                await waitWhile(() => this.state.isSayBtnPlaying === false); //wait state.isSayBtnPlaying == true (Say button fragment playing start)            
+                this.playSayButton();
+                await waitWhile(() => this.state.isSayBtnPlaying === true); //wait state.isSayBtnPlaying == false (Say button fragment playing end)  
+                await waitWhile(() => this.state.isPaused); //wait switching to this.state.isPaused == false    
+            }
+            await wait(this.state.pause*100);
         }
     }
 
     playMP3Fragment() {
-        if (this.aref.current) {
-            this.aref.current.currentTime = this.state.startTime;
-            this.aref.current.play();
+        if (this.state.mp3Enabled) {
+            if (this.aref.current) {
+                this.aref.current.currentTime = this.state.startTime;
+                this.aref.current.play();
+            }
         }
     }
 
-    handlePauseButtonClick() {
-        this.setState({ isPaused: !this.state.isPaused });
-    }
 
     playSayButton() {
         if (this.sayBtnWrapperRef.current) {
@@ -175,9 +248,9 @@ export class SPlayer extends React.Component<any, ISPlayerState> {
             return this.renderLoadFile();
         }
         let pauseButtonClassStr = (this.state.isPaused ? "img-play" : "img-pause");
-        let mp3ButtonClassStr = (this.state.mp3Enabled? "toolbar-button toolbar-button__text toolbar-button__enabled":"toolbar-button toolbar-button__text toolbar-button__disabled" )
-        let enButtonClassStr = (this.state.enEnabled? "toolbar-button toolbar-button__text toolbar-button__enabled":"toolbar-button toolbar-button__text toolbar-button__disabled" )
-        let ruButtonClassStr = (this.state.ruEnabled? "toolbar-button toolbar-button__text toolbar-button__enabled":"toolbar-button toolbar-button__text toolbar-button__disabled" )
+        let mp3ButtonClassStr = (this.state.mp3Enabled ? "toolbar-button toolbar-button__text toolbar-button__enabled" : "toolbar-button toolbar-button__text toolbar-button__disabled")
+        let enButtonClassStr = (this.state.enEnabled ? "toolbar-button toolbar-button__text toolbar-button__enabled" : "toolbar-button toolbar-button__text toolbar-button__disabled")
+        let ruButtonClassStr = (this.state.ruEnabled ? "toolbar-button toolbar-button__text toolbar-button__enabled" : "toolbar-button toolbar-button__text toolbar-button__disabled")
         return (
             <div className="splayer-page">
                 <div className="splayer-page__toolbar">
@@ -189,29 +262,28 @@ export class SPlayer extends React.Component<any, ISPlayerState> {
                         this.handlePauseButtonClick();
                     }}><div className={pauseButtonClassStr} /></button>
                     <button className={mp3ButtonClassStr} onClick={() => {
-                        this.setState({mp3Enabled:!this.state.mp3Enabled});
+                        this.setState({ mp3Enabled: !this.state.mp3Enabled });
                     }}>MP3</button>
                     <button className={enButtonClassStr} onClick={() => {
-                        this.setState({enEnabled:!this.state.enEnabled});
+                        this.setState({ enEnabled: !this.state.enEnabled });
                     }}>EN</button>
                     <button className={ruButtonClassStr} onClick={() => {
-                        this.setState({ruEnabled:!this.state.ruEnabled});
+                        this.setState({ ruEnabled: !this.state.ruEnabled });
                     }}>RU</button>
-
+                    <PauseTuner parent={this} />
                 </div>
 
                 <audio ref={this.aref} src={this.state.url} loop={true} onTimeUpdate={(e) => {
-                        if (this.aref.current) {
-                            if (this.aref.current.currentTime > this.state.endTime) {
-                                this.setState({ isMP3Playing: false })
-                                this.aref.current.pause();
-                            }
+                    if (this.aref.current) {
+                        if (this.aref.current.currentTime > this.state.endTime) {
+                            this.setState({ isMP3Playing: false })
+                            this.aref.current.pause();
                         }
-                    }}
+                    }
+                }}
                 />
                 <div ref={this.sayBtnWrapperRef} id="SayButtonWrapper" style={{ display: "none" }}>
                     <SayButton
-                        onClick={(event: any) => console.log(event)}
                         voice={this.langSelector}
                         speak={this.state.sayText}
                         onEnd={() => {
@@ -219,7 +291,7 @@ export class SPlayer extends React.Component<any, ISPlayerState> {
                         }}
                     />
                 </div>
-                <div>{this.state.sayText}</div>
+                <div className="splayer_page__text">{this.state.sayText}</div>
             </div>
         );
     }
