@@ -1,15 +1,15 @@
 {
   "files": {
-    "main.css": "/speechplayer/static/css/main.4bdf8873.css",
-    "main.js": "/speechplayer/static/js/main.b569d4e3.js",
-    "static/js/787.676f4d59.chunk.js": "/speechplayer/static/js/787.676f4d59.chunk.js",
-    "index.html": "/speechplayer/index.html",
-    "main.4bdf8873.css.map": "/speechplayer/static/css/main.4bdf8873.css.map",
-    "main.b569d4e3.js.map": "/speechplayer/static/js/main.b569d4e3.js.map",
-    "787.676f4d59.chunk.js.map": "/speechplayer/static/js/787.676f4d59.chunk.js.map"
+    "main.css": "/SpeechPlayer/static/css/main.4bdf8873.css",
+    "main.js": "/SpeechPlayer/static/js/main.8eb58055.js",
+    "static/js/787.676f4d59.chunk.js": "/SpeechPlayer/static/js/787.676f4d59.chunk.js",
+    "index.html": "/SpeechPlayer/index.html",
+    "main.4bdf8873.css.map": "/SpeechPlayer/static/css/main.4bdf8873.css.map",
+    "main.8eb58055.js.map": "/SpeechPlayer/static/js/main.8eb58055.js.map",
+    "787.676f4d59.chunk.js.map": "/SpeechPlayer/static/js/787.676f4d59.chunk.js.map"
   },
   "entrypoints": [
     "static/css/main.4bdf8873.css",
-    "static/js/main.b569d4e3.js"
+    "static/js/main.8eb58055.js"
   ]
 }
