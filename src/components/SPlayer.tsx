@@ -2,20 +2,21 @@ import React, { createRef, useState } from 'react';
 import JSZip from 'jszip';
 //@ts-ignore
 import { SayButton } from 'react-say';
-import { waitFor } from '@testing-library/react';
+import SRecognizer,{SRCommand} from './SRecognizer';
+import compareResult,{ICompareResult} from './CompareResult';
 
 enum langEnum {
     enUs = "en-US",
     ruRu = "ru=RU"
 }
 
-enum lstorageKey{
-    config="config",
-    results="results"
+enum lstorageKey {
+    config = "config",
+    results = "results"
 }
 
-interface IConfigSettings{
-    mp3Enabled:boolean;
+interface IConfigSettings {
+    mp3Enabled: boolean;
     enEnabled: boolean;
     ruEnabled: boolean;
     pause: number;
@@ -25,16 +26,20 @@ interface IConfigSettings{
 interface ISPlayerState {
     file?: File
     url?: string,
+    currItemIndex:number,
     startTime: number,
     endTime: number,
     isMP3Playing: boolean,
     isSayBtnPlaying: boolean,
+    SRecognizerCommand: SRCommand,
+    SRecognitionCheckPassed:boolean,
+    lastRecognitionResult?:ICompareResult,
     lang: langEnum,
     sayText: string,
     isStarted: boolean;
     isPaused: boolean;
     configPaneVisibility: boolean;
-    configSettings:IConfigSettings;
+    configSettings: IConfigSettings;
     MoveNextItemAutomatically: boolean;
     items: any[]
 }
@@ -75,9 +80,9 @@ const PauseTuner = (props: IPauseTunerProps) => {
         let middleX = elmRect.left + elmRect.width / 2;
         let state = props.parent.state;
         let touchX = e.touches[0].clientX;
-        let updateConfig = (updProps:any)=>{
-            let newConfig = {...state.configSettings,...updProps};
-            props.parent.setState({configSettings:newConfig});
+        let updateConfig = (updProps: any) => {
+            let newConfig = { ...state.configSettings, ...updProps };
+            props.parent.setState({ configSettings: newConfig });
         };
         if (touchX > middleX) {
             //right button clicked
@@ -117,11 +122,14 @@ export class SPlayer extends React.Component<any, ISPlayerState> {
             startTime: 10,
             endTime: 15,
             lang: langEnum.ruRu,
+            currItemIndex:0,
             sayText: "",
             isStarted: false,
             isPaused: false,
+            SRecognitionCheckPassed:false,
+            SRecognizerCommand:SRCommand.Stop,
             configPaneVisibility: false,
-            configSettings:{
+            configSettings: {
                 mp3Enabled: true,
                 enEnabled: true,
                 ruEnabled: true,
@@ -150,9 +158,9 @@ export class SPlayer extends React.Component<any, ISPlayerState> {
         window.addEventListener("touchstart", this.onTouchStart);
         window.addEventListener("touchend", this.onTouchEnd);
         let configStr = localStorage.getItem(lstorageKey.config);
-        if(configStr){
+        if (configStr) {
             let config = JSON.parse(configStr);
-            this.setState({configSettings:config});   
+            this.setState({ configSettings: config });
         }
     }
 
@@ -210,11 +218,22 @@ export class SPlayer extends React.Component<any, ISPlayerState> {
         this.setState({ configPaneVisibility: !this.state.configPaneVisibility });
     }
 
-    handleExitButtonClick(){
+    handleExitButtonClick() {
         this.handleConfigButtonClick();
-        localStorage.setItem(lstorageKey.config,JSON.stringify(this.state.configSettings));
+        localStorage.setItem(lstorageKey.config, JSON.stringify(this.state.configSettings));
     }
 
+    handleRecognitionResult(text:string){
+        let currItem = this.state.items[this.state.currItemIndex];
+        let result = compareResult(currItem.en,text);
+        let koeff= result.missingWcount/result.totalWCount;
+        if(koeff<0.25){
+            this.setState({SRecognitionCheckPassed:true,lastRecognitionResult:result});
+        } else {
+            this.setState({lastRecognitionResult:result});
+        }
+    }
+ 
     handleStartButtonClick() {
         this.setState({ isStarted: !this.state.isStarted }, () => {
             if (this.state.isStarted) {
@@ -235,9 +254,16 @@ export class SPlayer extends React.Component<any, ISPlayerState> {
                 await wait();
             }
         }
+        async function waitWhileWithTimeout(timeout_ms:number,conditionFunc: () => boolean) {
+            let msCounter = 0;
+            while (conditionFunc() && msCounter<timeout_ms) {
+                msCounter = msCounter + 200;
+                await wait();
+            }
+        }
         for (let i: number = 0; i < this.state.items.length;) {
             let currItem = this.state.items[i];
-            this.setState({ startTime: currItem.startTime, endTime: currItem.endTime, isMP3Playing: true, sayText: currItem.en }, () => {
+            this.setState({currItemIndex:i,SRecognitionCheckPassed:false, SRecognizerCommand:SRCommand.Stop, startTime: currItem.startTime, endTime: currItem.endTime, isMP3Playing: true, sayText: currItem.en }, () => {
                 this.playMP3Fragment()
             });
             if (this.state.isStarted && this.state.configSettings.mp3Enabled && currItem.file) {
@@ -264,11 +290,21 @@ export class SPlayer extends React.Component<any, ISPlayerState> {
             if (!this.state.isStarted) {
                 break;
             }
-            await wait(this.state.configSettings.pause * 100);
+            this.setState({SRecognizerCommand:SRCommand.Start});
+            await waitWhileWithTimeout(this.state.configSettings.pause * 100,()=>{
+                let whileResult = !this.state.SRecognitionCheckPassed;
+                if(!whileResult){
+                    console.log("check passed");
+                }
+                return whileResult;
+            });
+            this.setState({SRecognizerCommand:SRCommand.Stop});
+            console.log(this.state.lastRecognitionResult);
             if (this.state.MoveNextItemAutomatically) {
                 i++;
             }
-        }
+        } 
+        this.setState({isStarted:false});
     }
 
     playMP3Fragment() {
@@ -309,14 +345,15 @@ export class SPlayer extends React.Component<any, ISPlayerState> {
         let mp3ButtonClassStr = (this.state.configSettings.mp3Enabled ? "toolbar-button toolbar-button__text toolbar-button__enabled" : "toolbar-button toolbar-button__text toolbar-button__disabled");
         let enButtonClassStr = (this.state.configSettings.enEnabled ? "toolbar-button toolbar-button__text toolbar-button__enabled" : "toolbar-button toolbar-button__text toolbar-button__disabled");
         let ruButtonClassStr = (this.state.configSettings.ruEnabled ? "toolbar-button toolbar-button__text toolbar-button__enabled" : "toolbar-button toolbar-button__text toolbar-button__disabled");
-        let updateConfig = (updProps:any)=>{
-            let newConfig = {...this.state.configSettings,...updProps};
-            this.setState({configSettings:newConfig});
+        let updateConfig = (updProps: any) => {
+            let newConfig = { ...this.state.configSettings, ...updProps };
+            this.setState({ configSettings: newConfig });
         };
         return (
-            <div className="splayer-page"> 
-                <button className="toolbar-button " style={{marginBottom:"10px"}} onClick={() => {
-                    this.handleExitButtonClick();}}>
+            <div className="splayer-page">
+                <button className="toolbar-button " style={{ marginBottom: "10px" }} onClick={() => {
+                    this.handleExitButtonClick();
+                }}>
                     <div className="img-exit" />
                 </button>
                 <div className="splayer-page__toolbar">
@@ -334,6 +371,17 @@ export class SPlayer extends React.Component<any, ISPlayerState> {
             </div>
         );
     }
+ 
+    renderSRecognizer() {
+        return (
+            <div className="srecognizer-container">
+                <SRecognizer parent={this} onChange={(text:string)=>{
+                    this.handleRecognitionResult(text);
+                }}  />
+            </div>
+        )
+    }
+
 
     renderMainPane() {
         let startButtonClassStr = (this.state.isStarted ? "toolbar-button toolbar-button__enabled" : "toolbar-button toolbar-button__disabled");
@@ -378,6 +426,7 @@ export class SPlayer extends React.Component<any, ISPlayerState> {
                     />
                 </div>
                 <div className="splayer_page__text">{this.state.sayText}</div>
+                {this.renderSRecognizer()}
             </div>
         );
     }
