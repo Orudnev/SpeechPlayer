@@ -6,7 +6,7 @@ import {SPlayer} from './SPlayer';
 
 const appId = '<INSERT_SPEECHLY_APP_ID_HERE>';
 const SpeechlySpeechRecognition = createSpeechlySpeechRecognition(appId);
-SpeechRecognition.applyPolyfill(SpeechlySpeechRecognition);
+//SpeechRecognition.applyPolyfill(SpeechlySpeechRecognition);
 
 
 export enum SRCommand{
@@ -43,7 +43,7 @@ const SRecognizer = (props:ISRecognizerProps) => {
                 resetTranscript();
             }
             setTimeout(()=>{
-                SpeechRecognition.startListening({continuous: true});    
+                SpeechRecognition.startListening({continuous: true,language: 'en-US'});    
             },0)
         }
     }
