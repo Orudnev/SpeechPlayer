@@ -110,8 +110,8 @@ export class SPlayer extends React.Component<any, ISPlayerState> {
             url: undefined,
             isMP3Playing: false,
             isSayBtnPlaying: false,
-            startTime: 10,
-            endTime: 15,
+            startTime: 0,
+            endTime: 0,
             lang: langEnum.ruRu,
             currItemIndex:0,
             sayText: "",
@@ -236,47 +236,27 @@ export class SPlayer extends React.Component<any, ISPlayerState> {
 
     async startPlaySpeech() {
         for (let i: number = 0; i < this.state.items.length;) {
+            await this.waitStateApplying(
+            {
+                currItemIndex:i,
+                SRecognitionCheckPassed:false, 
+                SRecognizerCommand:SRCommand.Stop, 
+            });
             let currItem = this.state.items[i];
             if (this.state.isStarted && this.state.configSettings.mp3Enabled && this.state.file) {
-                this.setState({
-                        currItemIndex:i,
-                        SRecognitionCheckPassed:false, 
-                        SRecognizerCommand:SRCommand.Stop, 
-                        startTime: currItem.startTime, 
-                        endTime: currItem.endTime, 
-                        isMP3Playing: true, 
-                        sayText: currItem.en});
-                await waitWhile(() => this.state.isMP3Playing === false,"wait state.isMP3Playing=true"); //wait state.isMP3Playing == true (MP3 fragment playing start)
-                this.playMP3Fragment();
-                await waitWhile(() => this.state.isMP3Playing === true,"wait state.isMP3Playing=false"); //wait state.isMP3Playing == false (MP3 fragment playing end)
-                await waitWhile(() => this.state.isPaused,"wait switching to this.state.isPaused"); //wait switching to this.state.isPaused == false   
+                await this.playMP3Fragment(currItem.startTime,currItem.endTime);
             }
-
             if (this.state.isStarted && this.state.configSettings.enEnabled && currItem.en) {
-                this.setState({ lang: langEnum.enUs, sayText: currItem.en, isSayBtnPlaying: true });
-                await waitWhile(() => this.state.isSayBtnPlaying === false,"EN wait state.isSayBtnPlaying == true"); //wait state.isSayBtnPlaying == true (Say button fragment playing start)            
-                this.playSayButton();
-                await waitWhile(() => this.state.isSayBtnPlaying === true,"EN wait state.isSayBtnPlaying == false"); //wait state.isSayBtnPlaying == false (Say button fragment playing end)            
-                await waitWhile(() => this.state.isPaused,"EN wait switching to this.state.isPaused == false"); //wait switching to this.state.isPaused == false    
+                await this.playSayButton(langEnum.enUs,currItem.en);
             }
-
             if (this.state.isStarted && this.state.configSettings.ruEnabled && currItem.ru) {
-                this.setState({ lang: langEnum.ruRu, sayText: currItem.ru, isSayBtnPlaying: true });
-                await waitWhile(() => this.state.isSayBtnPlaying === false,"RU wait state.isSayBtnPlaying == true"); //wait state.isSayBtnPlaying == true (Say button fragment playing start)            
-                this.playSayButton();
-                await waitWhile(() => this.state.isSayBtnPlaying === true,"RU wait state.isSayBtnPlaying == false"); //wait state.isSayBtnPlaying == false (Say button fragment playing end)  
-                await waitWhile(() => this.state.isPaused,"RU wait switching to this.state.isPaused == false"); //wait switching to this.state.isPaused == false    
+                await this.playSayButton(langEnum.ruRu,currItem.ru);
             }
             if (!this.state.isStarted) {
-                break;
+                break; 
             }
-            this.setState({SRecognizerCommand:SRCommand.Start});
-            await waitWhileWithTimeout(
-                this.state.configSettings.pause * 100,
-                ()=>!this.state.SRecognitionCheckPassed,
-                "Wait recognition check");
-            this.setState({SRecognizerCommand:SRCommand.Stop});
-            console.log(this.state.lastRecognitionResult);
+            await this.listenAndRecognizeVoiceAnswer();
+
             if (this.state.MoveNextItemAutomatically) {
                 i++;
             }
@@ -284,21 +264,47 @@ export class SPlayer extends React.Component<any, ISPlayerState> {
         this.setState({isStarted:false});
     }
 
-    playMP3Fragment() {
-        if (this.state.configSettings.mp3Enabled) {
-            if (this.aref.current && this.state.file) {
-                this.aref.current.currentTime = this.state.startTime;
-                this.aref.current.play();
-            }
+    async waitStateApplying(newState:any){
+        let completed = false;
+        this.setState(newState,()=>{completed = true;});
+        await waitWhile(()=>!completed,`wait new state applying: ${JSON.stringify(newState)}`);
+        console.log("New state applied");
+    }
+
+    async playMP3Fragment(startTim:number,endTim:number) {      
+        if (!this.state.configSettings.mp3Enabled || this.state.isPaused){
+            return;
+        }
+        await this.waitStateApplying({startTime:startTim,endTime:endTim,isMP3Playing:true});
+        if (this.aref.current && this.state.file) {
+            this.aref.current.currentTime = this.state.startTime;
+            this.aref.current.play();
+            await waitWhile(() => this.state.isMP3Playing === true,"wait state.isMP3Playing=false");
         }
     }
 
 
-    playSayButton() {
+    async playSayButton(lng:langEnum,textToSay:string) {
+        if(this.state.isPaused){
+            await waitWhile(() => this.state.isPaused,"EN wait switching 'Pause' mode to 'Start'");
+        }
+        this.setState({lang:lng,sayText:textToSay,isSayBtnPlaying:true});
+        await waitWhile(() => this.state.isSayBtnPlaying === false,`${lng} wait applying new text=${textToSay}`);
         if (this.sayBtnWrapperRef.current) {
             this.sayBtnWrapperRef.current.getElementsByTagName("button")[0].click();
         }
+        await waitWhile(() => this.state.isSayBtnPlaying === true,`${lng} wait completing the speech`);         
     }
+
+    async listenAndRecognizeVoiceAnswer(){
+        this.setState({SRecognizerCommand:SRCommand.Start});
+        await waitWhileWithTimeout(
+            this.state.configSettings.pause * 100,
+            ()=>!this.state.SRecognitionCheckPassed,
+            "Wait recognition check");
+        this.setState({SRecognizerCommand:SRCommand.Stop});
+        console.log(this.state.lastRecognitionResult);        
+    } 
 
     renderLoadFile() {
         return (
