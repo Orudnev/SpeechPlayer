@@ -4,6 +4,7 @@ import JSZip from 'jszip';
 import { SayButton } from 'react-say';
 import SRecognizer,{SRCommand} from './SRecognizer';
 import compareResult,{ICompareResult} from './CompareResult';
+import {wait,waitWhile,waitWhileWithTimeout} from './AsyncHelper';
 
 enum langEnum {
     enUs = "en-US",
@@ -61,16 +62,6 @@ interface IPauseTunerProps {
 }
 
 const PauseTuner = (props: IPauseTunerProps) => {
-    async function wait(ms = 100) {
-        return new Promise(resolve => {
-            setTimeout(resolve, ms)
-        });
-    }
-    async function waitWhile(conditionFunc: () => boolean) {
-        while (conditionFunc()) {
-            await wait();
-        }
-    }
     const handleMouseDown = (e: any) => {
         changePauseValue(e);
     };
@@ -244,29 +235,6 @@ export class SPlayer extends React.Component<any, ISPlayerState> {
 
 
     async startPlaySpeech() {
-        async function wait(ms = 200) {
-            return new Promise(resolve => {
-                setTimeout(resolve, ms)
-            });
-        }
-        async function waitWhile(conditionFunc: () => boolean,message:string="") {
-            while (conditionFunc()) {
-                await wait();
-                if(message){
-                    console.log("witeWhile:",message);
-                }
-            }
-        }
-        async function waitWhileWithTimeout(timeout_ms:number,conditionFunc: () => boolean,message:string="") {
-            let msCounter = 0;
-            while (conditionFunc() && msCounter<timeout_ms) {
-                msCounter = msCounter + 200;
-                await wait();
-                if(message){
-                    console.log("witeWhileWithTimeout:(",timeout_ms-msCounter,")   ",message);
-                }
-            }
-        }
         for (let i: number = 0; i < this.state.items.length;) {
             let currItem = this.state.items[i];
             if (this.state.isStarted && this.state.configSettings.mp3Enabled && this.state.file) {
