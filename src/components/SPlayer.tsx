@@ -6,7 +6,7 @@ import SRecognizer,{SRCommand} from './SRecognizer';
 import compareResult,{ICompareResult} from './CompareResult';
 import {wait,waitWhile,waitWhileWithTimeout} from './AsyncHelper';
 
-enum langEnum {
+export enum langEnum {
     enUs = "en-US",
     ruRu = "ru=RU"
 }
@@ -218,6 +218,9 @@ export class SPlayer extends React.Component<any, ISPlayerState> {
         let currItem = this.state.items[this.state.currItemIndex];
         let result = compareResult(currItem.en,text);
         let koeff= result.missingWcount/result.totalWCount;
+        if(koeff<0.1){
+
+        }
         if(koeff<0.25){
             this.setState({SRecognitionCheckPassed:true,lastRecognitionResult:result});
         } else {
@@ -256,7 +259,7 @@ export class SPlayer extends React.Component<any, ISPlayerState> {
                 break; 
             }
             await this.listenAndRecognizeVoiceAnswer();
-
+            await this.sayRecognitionResult();
             if (this.state.MoveNextItemAutomatically) {
                 i++;
             }
@@ -303,8 +306,15 @@ export class SPlayer extends React.Component<any, ISPlayerState> {
             ()=>!this.state.SRecognitionCheckPassed,
             "Wait recognition check");
         this.setState({SRecognizerCommand:SRCommand.Stop});
-        console.log(this.state.lastRecognitionResult);        
     } 
+
+    async sayRecognitionResult(){
+        if(!this.state.lastRecognitionResult){
+            return;
+        }
+        await this.playSayButton(this.state.lastRecognitionResult.evaluationTextLanguage,this.state.lastRecognitionResult.evaluationText);
+        this.setState({lastRecognitionResult:undefined});
+    }
 
     renderLoadFile() {
         return (

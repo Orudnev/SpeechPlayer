@@ -1,4 +1,4 @@
-
+import {langEnum} from './SPlayer';
 
 
 function devideWordsContainingHyphen(inStr:string){
@@ -40,6 +40,8 @@ function devideWordsContainingHyphen(inStr:string){
     missingWords:WordCount[];
     totalWCount : number;
     missingWcount: number;
+    evaluationText: string;
+    evaluationTextLanguage: langEnum
   }
 
 export default  function compareResult(etalonStr: string, testStr: string):ICompareResult {
@@ -65,6 +67,21 @@ export default  function compareResult(etalonStr: string, testStr: string):IComp
         missingWCnt += eItm.count;
       }
     }
-    let result:ICompareResult = {totalWCount:totalWcnt,missingWcount:missingWCnt,missingWords:missingWords};
+    let evLang = langEnum.ruRu;
+    let koeff= missingWCnt/totalWcnt;
+    let evText = 100 - Math.round(koeff*100)+" процентов";
+    if(koeff<=0.1){
+      evLang = langEnum.enUs;
+      evText="Excellent!";
+    }
+    if(koeff<0.25 && koeff>0.1){
+      evLang = langEnum.enUs;
+      evText="Good !";
+    }
+    if(koeff>0.8){
+      evText="Чего молчим, кого ждем?";
+    }
+
+    let result:ICompareResult = {totalWCount:totalWcnt,missingWcount:missingWCnt,missingWords:missingWords,evaluationText:evText,evaluationTextLanguage:evLang};
     return result;
   }
