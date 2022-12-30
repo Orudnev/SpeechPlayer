@@ -35,8 +35,16 @@ function devideWordsContainingHyphen(inStr:string){
     }
     return result;
   }
+
+  export enum VoiceCommand{
+    NoCommand="NoCommand",
+    StopListenAndGiveResult="StopListenAndGiveResult",
+    GoNextItem="GoNextItem"
+  }
   
+
   export interface ICompareResult{
+    command:VoiceCommand|undefined;
     missingWords:WordCount[];
     totalWCount : number;
     missingWcount: number;
@@ -44,7 +52,51 @@ function devideWordsContainingHyphen(inStr:string){
     evaluationTextLanguage: langEnum
   }
 
-export default  function compareResult(etalonStr: string, testStr: string):ICompareResult {
+
+interface IVoiceCommandItem{
+  key:VoiceCommand,
+  words:string[]
+}
+
+const voiceCommandWords:IVoiceCommandItem[]=[
+  {key:VoiceCommand.StopListenAndGiveResult,words:["yeah","yes"]},
+  {key:VoiceCommand.GoNextItem,words:["next"]}
+];
+
+interface IRecognizeCommandResult{
+  command:VoiceCommand;
+  textBeforeCommand:string;
+}
+
+function recognizeCommand(testStr:string):IRecognizeCommandResult{
+  //testStr = "Pocoyo Coco yeah go go yeah";
+  let tx = testStr.toLowerCase();
+  let startCommandWords = ["google","coco","go go","oh"];
+  let startWrd = "";
+  let getCommandText = ()=>{
+      let stWrd = startCommandWords.find(wrd=>tx.lastIndexOf(wrd)>-1);
+      if(stWrd){
+        startWrd = stWrd;
+        return tx.substring(tx.lastIndexOf(stWrd)+stWrd.length);
+      }
+      return "";
+  };
+  let cmdText = getCommandText();
+  if(!cmdText){
+    return {command:VoiceCommand.NoCommand,textBeforeCommand:testStr};
+  }  
+  let command = voiceCommandWords.find(patternItems=>patternItems.words.find(wrd=>cmdText.includes(wrd))!=undefined)
+  let txBeforeCommand = tx.substring(0,tx.indexOf(startWrd))
+  if(command){
+    return {command:command.key,textBeforeCommand:txBeforeCommand};
+  }
+  return {command:VoiceCommand.NoCommand,textBeforeCommand:txBeforeCommand};
+}
+
+
+export default  function compareResult(etalonStr: string, wholeTestStr: string):ICompareResult {
+    let cmdRecognResult = recognizeCommand(wholeTestStr);
+    let testStr = cmdRecognResult.textBeforeCommand;
     let etalonWCnt = getWordCounts(etalonStr);
     let totalWcnt = 0;
     let testWCnt = getWordCounts(testStr);
@@ -79,9 +131,16 @@ export default  function compareResult(etalonStr: string, testStr: string):IComp
       evText="Good !";
     }
     if(koeff>0.8){
-      evText="Чего молчим, кого ждем?";
+      //evText="Чего молчим, кого ждем?";
     }
-
-    let result:ICompareResult = {totalWCount:totalWcnt,missingWcount:missingWCnt,missingWords:missingWords,evaluationText:evText,evaluationTextLanguage:evLang};
+ 
+    let result:ICompareResult = {
+      command:cmdRecognResult.command,
+      totalWCount:totalWcnt,
+      missingWcount:missingWCnt,
+      missingWords:missingWords,
+      evaluationText:evText,
+      evaluationTextLanguage:evLang};
+    //console.log("instr:",wholeTestStr,result);    
     return result;
   }

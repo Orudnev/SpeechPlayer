@@ -3,7 +3,7 @@ import JSZip from 'jszip';
 //@ts-ignore
 import { SayButton } from 'react-say';
 import SRecognizer,{SRCommand} from './SRecognizer';
-import compareResult,{ICompareResult} from './CompareResult';
+import compareResult,{ICompareResult, VoiceCommand} from './CompareResult';
 import {wait,waitWhile,waitWhileWithTimeout} from './AsyncHelper';
 
 export enum langEnum {
@@ -103,6 +103,7 @@ export class SPlayer extends React.Component<any, ISPlayerState> {
     aref: React.RefObject<HTMLAudioElement>;
     sayBtnWrapperRef: React.RefObject<HTMLDivElement>;
     touchState: number = 0;
+    cmdStartDetected:boolean = false;
     constructor(props: any) {
         super(props);
         this.state = {
@@ -216,12 +217,10 @@ export class SPlayer extends React.Component<any, ISPlayerState> {
 
     handleRecognitionResult(text:string){
         let currItem = this.state.items[this.state.currItemIndex];
+        let cr = compareResult;
         let result = compareResult(currItem.en,text);
         let koeff= result.missingWcount/result.totalWCount;
-        if(koeff<0.1){
-
-        }
-        if(koeff<0.25){
+        if(koeff<0.25 || result.command!=VoiceCommand.NoCommand){
             this.setState({SRecognitionCheckPassed:true,lastRecognitionResult:result});
         } else {
             this.setState({lastRecognitionResult:result});
@@ -244,7 +243,7 @@ export class SPlayer extends React.Component<any, ISPlayerState> {
                 currItemIndex:i,
                 SRecognitionCheckPassed:false, 
                 SRecognizerCommand:SRCommand.Stop, 
-            });
+            }); 
             let currItem = this.state.items[i];
             if (this.state.isStarted && this.state.configSettings.mp3Enabled && this.state.file) {
                 await this.playMP3Fragment(currItem.startTime,currItem.endTime);
@@ -259,6 +258,14 @@ export class SPlayer extends React.Component<any, ISPlayerState> {
                 break; 
             }
             await this.listenAndRecognizeVoiceAnswer();
+            if(this.state.lastRecognitionResult && this.state.lastRecognitionResult.command){
+                if(this.state.lastRecognitionResult.command==VoiceCommand.GoNextItem){
+                    this.state.lastRecognitionResult.command = VoiceCommand.NoCommand;
+                    i++;
+                    continue;
+                }
+                this.state.lastRecognitionResult.command = VoiceCommand.NoCommand;
+            }
             await this.sayRecognitionResult();
             if (this.state.MoveNextItemAutomatically) {
                 i++;
