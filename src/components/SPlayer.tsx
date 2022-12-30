@@ -23,9 +23,53 @@ interface IConfigSettings {
     pause: number;
 }
 
+interface ISpeechItem{
+    en:string;
+    ru?:string;
+    startTime?:number;
+    endTime?:number;    
+}
 
-interface ISPlayerState {
-    file?: File
+interface IDialogueItem {
+    p1:ISpeechItem;
+    p2:ISpeechItem;
+}
+
+type IItem = ISpeechItem | IDialogueItem;
+
+function GetSpeechItem(item:IItem,person="p2"):ISpeechItem{
+    if(item.hasOwnProperty("en")){
+        return item as ISpeechItem;
+    } 
+    if(item.hasOwnProperty("p1")){
+        let itm = item as any;
+        return itm[person];
+    }
+    throw new Error("Unknown item format");
+}
+
+function GetItems(jsonObj:any):IItem[]{
+    let firstItem = jsonObj.items[0] as IItem;
+    let createISpeechInstance = (itm:ISpeechItem)=>{
+        let result =  { en: itm.en, ru: itm.ru, startTime: itm.startTime, endTime: itm.endTime };
+        return result;
+    }
+    let result:IItem[] = []; 
+    if(firstItem.hasOwnProperty("p1")){
+        result = jsonObj.items.map((itm:any)=>{
+            let person1 = createISpeechInstance(itm.p1);
+            let person2 = createISpeechInstance(itm.p2); 
+            return {p1:person1,p2:person2};
+        });   
+        return result;     
+    }
+    result = jsonObj.items.map((itm:any)=>createISpeechInstance(itm));
+    return result;
+}
+
+
+interface ISPlayerState {    
+    file?: File,    
     url?: string,
     currItemIndex:number,
     startTime: number,
@@ -42,7 +86,7 @@ interface ISPlayerState {
     configPaneVisibility: boolean;
     configSettings: IConfigSettings;
     MoveNextItemAutomatically: boolean;
-    items: any[]
+    items: IItem[];
 }
 
 const binToStringConverter = new FileReader();
@@ -172,10 +216,8 @@ export class SPlayer extends React.Component<any, ISPlayerState> {
     onBinToStringConverted(e: any) {
         let strResult = e.srcElement.result;
         let incomingJson = JSON.parse(strResult);
-        let sitems = incomingJson.items.map((itm: any, index: number) => {
-            return { id: index + 1, en: itm.en, ru: itm.ru, startTime: itm.startTime, endTime: itm.endTime };
-        });
-        this.setState({ items: sitems, lang: langEnum.enUs, sayText: sitems[0].en });
+        let iitems = GetItems(incomingJson);        
+        this.setState({ items: iitems, lang: langEnum.enUs, sayText: GetSpeechItem(iitems[0]).en });
     }
 
     loadFile(selFile: File) {
@@ -216,9 +258,8 @@ export class SPlayer extends React.Component<any, ISPlayerState> {
     }
 
     handleRecognitionResult(text:string){
-        let currItem = this.state.items[this.state.currItemIndex];
-        let cr = compareResult;
-        let result = compareResult(currItem.en,text);
+        let currItem = this.state.items[this.state.currItemIndex];        
+        let result = compareResult(GetSpeechItem(currItem).en,text);
         let koeff= result.missingWcount/result.totalWCount;
         if(koeff<0.25 || result.command!=VoiceCommand.NoCommand){
             this.setState({SRecognitionCheckPassed:true,lastRecognitionResult:result});
@@ -245,14 +286,15 @@ export class SPlayer extends React.Component<any, ISPlayerState> {
                 SRecognizerCommand:SRCommand.Stop, 
             }); 
             let currItem = this.state.items[i];
-            if (this.state.isStarted && this.state.configSettings.mp3Enabled && this.state.file) {
-                await this.playMP3Fragment(currItem.startTime,currItem.endTime);
+            let currSpeechItem = GetSpeechItem(currItem);
+            if (this.state.isStarted && this.state.configSettings.mp3Enabled && this.state.file && currSpeechItem.startTime && currSpeechItem.endTime) {
+                await this.playMP3Fragment(currSpeechItem.startTime,currSpeechItem.endTime);
             }
-            if (this.state.isStarted && this.state.configSettings.enEnabled && currItem.en) {
-                await this.playSayButton(langEnum.enUs,currItem.en);
+            if (this.state.isStarted && this.state.configSettings.enEnabled) {
+                await this.playSayButton(langEnum.enUs,currSpeechItem.en);
             }
-            if (this.state.isStarted && this.state.configSettings.ruEnabled && currItem.ru) {
-                await this.playSayButton(langEnum.ruRu,currItem.ru);
+            if (this.state.isStarted && this.state.configSettings.ruEnabled && currSpeechItem.ru) {
+                await this.playSayButton(langEnum.ruRu,currSpeechItem.ru);
             }
             if (!this.state.isStarted) {
                 break; 
