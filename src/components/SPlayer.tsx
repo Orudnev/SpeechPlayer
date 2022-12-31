@@ -2,9 +2,9 @@ import React, { createRef, useState } from 'react';
 import JSZip from 'jszip';
 //@ts-ignore
 import { SayButton } from 'react-say';
-import SRecognizer,{SRCommand} from './SRecognizer';
-import compareResult,{ICompareResult, VoiceCommand} from './CompareResult';
-import {wait,waitWhile,waitWhileWithTimeout} from './AsyncHelper';
+import SRecognizer, { SRCommand } from './SRecognizer';
+import compareResult, { ICompareResult, VoiceCommand } from './CompareResult';
+import { wait, waitWhile, waitWhileWithTimeout } from './AsyncHelper';
 
 export enum langEnum {
     enUs = "en-US",
@@ -23,62 +23,64 @@ interface IConfigSettings {
     pause: number;
 }
 
-interface ISpeechItem{
-    en:string;
-    ru?:string;
-    startTime?:number;
-    endTime?:number;    
+interface ISpeechItem {
+    en: string;
+    ru?: string;
+    startTime?: number;
+    endTime?: number;
 }
 
 interface IDialogueItem {
-    p1:ISpeechItem;
-    p2:ISpeechItem;
+    p1: ISpeechItem;
+    p2: ISpeechItem[];
 }
 
 type IItem = ISpeechItem | IDialogueItem;
 
-function GetSpeechItem(item:IItem,person="p2"):ISpeechItem{
-    if(item.hasOwnProperty("en")){
+function GetSpeechItem(item: IItem, person = "p2"): ISpeechItem {
+    if (item.hasOwnProperty("en")) {
         return item as ISpeechItem;
-    } 
-    if(item.hasOwnProperty("p1")){
+    }
+    if (item.hasOwnProperty("p1")) {
         let itm = item as any;
         return itm[person];
     }
     throw new Error("Unknown item format");
 }
 
-function GetItems(jsonObj:any):IItem[]{
+function GetItems(jsonObj: any): IItem[] {
     let firstItem = jsonObj.items[0] as IItem;
-    let createISpeechInstance = (itm:ISpeechItem)=>{
-        let result =  { en: itm.en, ru: itm.ru, startTime: itm.startTime, endTime: itm.endTime };
+    let createISpeechInstance = (itm: ISpeechItem) => {
+        let result = { en: itm.en, ru: itm.ru, startTime: itm.startTime, endTime: itm.endTime };
         return result;
     }
-    let result:IItem[] = []; 
-    if(firstItem.hasOwnProperty("p1")){
-        result = jsonObj.items.map((itm:any)=>{
+    let result: IItem[] = [];
+    if (firstItem.hasOwnProperty("p1")) {
+        result = jsonObj.items.map((itm: any) => {
             let person1 = createISpeechInstance(itm.p1);
-            let person2 = createISpeechInstance(itm.p2); 
-            return {p1:person1,p2:person2};
-        });   
-        return result;     
+            let p2Parts = itm.p2.en.split(/[.,]/);
+            let person2 = p2Parts.map((itm: string) => createISpeechInstance({ en: itm }));
+
+            return { p1: person1, p2: person2 };
+        });
+        return result;
     }
-    result = jsonObj.items.map((itm:any)=>createISpeechInstance(itm));
+    result = jsonObj.items.map((itm: any) => createISpeechInstance(itm));
     return result;
 }
 
 
-interface ISPlayerState {    
-    file?: File,    
+interface ISPlayerState {
+    file?: File,
     url?: string,
-    currItemIndex:number,
+    currItemIndex: number,
     startTime: number,
     endTime: number,
     isMP3Playing: boolean,
     isSayBtnPlaying: boolean,
     SRecognizerCommand: SRCommand,
-    SRecognitionCheckPassed:boolean,
-    lastRecognitionResult?:ICompareResult,
+    SRecognitionCheckPassed: boolean,
+    lastRecognitionResult?: ICompareResult,
     lang: langEnum,
     sayText: string,
     isStarted: boolean;
@@ -147,7 +149,7 @@ export class SPlayer extends React.Component<any, ISPlayerState> {
     aref: React.RefObject<HTMLAudioElement>;
     sayBtnWrapperRef: React.RefObject<HTMLDivElement>;
     touchState: number = 0;
-    cmdStartDetected:boolean = false;
+    cmdStartDetected: boolean = false;
     constructor(props: any) {
         super(props);
         this.state = {
@@ -158,12 +160,12 @@ export class SPlayer extends React.Component<any, ISPlayerState> {
             startTime: 0,
             endTime: 0,
             lang: langEnum.ruRu,
-            currItemIndex:0,
+            currItemIndex: 0,
             sayText: "",
             isStarted: false,
             isPaused: false,
-            SRecognitionCheckPassed:false,
-            SRecognizerCommand:SRCommand.Stop,
+            SRecognitionCheckPassed: false,
+            SRecognizerCommand: SRCommand.Stop,
             configPaneVisibility: false,
             configSettings: {
                 mp3Enabled: true,
@@ -216,7 +218,7 @@ export class SPlayer extends React.Component<any, ISPlayerState> {
     onBinToStringConverted(e: any) {
         let strResult = e.srcElement.result;
         let incomingJson = JSON.parse(strResult);
-        let iitems = GetItems(incomingJson);        
+        let iitems = GetItems(incomingJson);
         this.setState({ items: iitems, lang: langEnum.enUs, sayText: GetSpeechItem(iitems[0]).en });
     }
 
@@ -257,51 +259,51 @@ export class SPlayer extends React.Component<any, ISPlayerState> {
         localStorage.setItem(lstorageKey.config, JSON.stringify(this.state.configSettings));
     }
 
-    handleRecognitionResult(text:string){
-        let currItem = this.state.items[this.state.currItemIndex];        
-        let result = compareResult(GetSpeechItem(currItem).en,text);
-        let koeff= result.missingWcount/result.totalWCount;
-        if(koeff<0.25 || result.command!=VoiceCommand.NoCommand){
-            this.setState({SRecognitionCheckPassed:true,lastRecognitionResult:result});
+    handleRecognitionResult(text: string) {
+        let currItem = this.state.items[this.state.currItemIndex];
+        let result = compareResult(GetSpeechItem(currItem).en, text);
+        let koeff = result.missingWcount / result.totalWCount;
+        if (koeff < 0.25 || result.command != VoiceCommand.NoCommand) {
+            this.setState({ SRecognitionCheckPassed: true, lastRecognitionResult: result });
         } else {
-            this.setState({lastRecognitionResult:result});
+            this.setState({ lastRecognitionResult: result });
         }
     }
- 
+
     handleStartButtonClick() {
         this.setState({ isStarted: !this.state.isStarted }, () => {
             if (this.state.isStarted) {
-                this.startPlaySpeech()
+                if (this.state.items[0].hasOwnProperty("p1")) {
+                    this.startPlayDialogue();
+                } else {
+                    this.startPlaySpeech();
+                }
             }
         });
     }
 
-
-    async startPlaySpeech() {
+    async startPlayDialogue() {
         for (let i: number = 0; i < this.state.items.length;) {
             await this.waitStateApplying(
-            {
-                currItemIndex:i,
-                SRecognitionCheckPassed:false, 
-                SRecognizerCommand:SRCommand.Stop, 
-            }); 
-            let currItem = this.state.items[i];
-            let currSpeechItem = GetSpeechItem(currItem);
-            if (this.state.isStarted && this.state.configSettings.mp3Enabled && this.state.file && currSpeechItem.startTime && currSpeechItem.endTime) {
-                await this.playMP3Fragment(currSpeechItem.startTime,currSpeechItem.endTime);
-            }
+                {
+                    currItemIndex: i,
+                    SRecognitionCheckPassed: false,
+                    SRecognizerCommand: SRCommand.Stop,
+                });
+            let currItem = this.state.items[i] as IDialogueItem;
             if (this.state.isStarted && this.state.configSettings.enEnabled) {
-                await this.playSayButton(langEnum.enUs,currSpeechItem.en);
+                await this.playSayButton(langEnum.enUs, currItem.p1.en);
             }
-            if (this.state.isStarted && this.state.configSettings.ruEnabled && currSpeechItem.ru) {
-                await this.playSayButton(langEnum.ruRu,currSpeechItem.ru);
+            if (this.state.isStarted) {
+                this.waitStateApplying({ items: currItem.p2 });
+                await this.startPlaySpeech();
             }
             if (!this.state.isStarted) {
-                break; 
+                break;
             }
             await this.listenAndRecognizeVoiceAnswer();
-            if(this.state.lastRecognitionResult && this.state.lastRecognitionResult.command){
-                if(this.state.lastRecognitionResult.command==VoiceCommand.GoNextItem){
+            if (this.state.lastRecognitionResult && this.state.lastRecognitionResult.command) {
+                if (this.state.lastRecognitionResult.command == VoiceCommand.GoNextItem) {
                     this.state.lastRecognitionResult.command = VoiceCommand.NoCommand;
                     i++;
                     continue;
@@ -312,57 +314,105 @@ export class SPlayer extends React.Component<any, ISPlayerState> {
             if (this.state.MoveNextItemAutomatically) {
                 i++;
             }
-        } 
-        this.setState({isStarted:false});
+        }
+        this.setState({ isStarted: false });
     }
 
-    async waitStateApplying(newState:any){
+    async startPlaySpeech() {
+        for (let i: number = 0; i < this.state.items.length;) {
+            if (!this.state.lastRecognitionResult || this.state.lastRecognitionResult.command != VoiceCommand.ClearListenResultAndListenAgain) {
+                await this.waitStateApplying(
+                    {
+                        currItemIndex: i,
+                        SRecognitionCheckPassed: false,
+                        SRecognizerCommand: SRCommand.Stop,
+                    });
+                let currItem = this.state.items[i];
+                let currSpeechItem = GetSpeechItem(currItem);
+                if (this.state.isStarted && this.state.configSettings.mp3Enabled && this.state.file && currSpeechItem.startTime && currSpeechItem.endTime) {
+                    await this.playMP3Fragment(currSpeechItem.startTime, currSpeechItem.endTime);
+                }
+                if (this.state.isStarted && this.state.configSettings.enEnabled) {
+                    await this.playSayButton(langEnum.enUs, currSpeechItem.en);
+                }
+                if (this.state.isStarted && this.state.configSettings.ruEnabled && currSpeechItem.ru) {
+                    await this.playSayButton(langEnum.ruRu, currSpeechItem.ru);
+                }
+            } else {
+                this.state.lastRecognitionResult.command = VoiceCommand.NoCommand;
+            }
+
+            if (!this.state.isStarted) {
+                break;
+            }
+
+            await this.listenAndRecognizeVoiceAnswer();
+            if (this.state.lastRecognitionResult && this.state.lastRecognitionResult.command) {
+                if (this.state.lastRecognitionResult.command == VoiceCommand.ClearListenResultAndListenAgain) {
+                    continue;
+                }
+                if (this.state.lastRecognitionResult.command == VoiceCommand.GoNextItem) {
+                    this.state.lastRecognitionResult.command = VoiceCommand.NoCommand;
+                    i++;
+                    continue;
+                }
+                this.state.lastRecognitionResult.command = VoiceCommand.NoCommand;
+            }
+            await this.sayRecognitionResult();
+            if (this.state.MoveNextItemAutomatically) {
+                i++;
+            }
+        }
+        this.setState({ isStarted: false });
+    }
+
+    async waitStateApplying(newState: any) {
         let completed = false;
-        this.setState(newState,()=>{completed = true;});
-        await waitWhile(()=>!completed,`wait new state applying: ${JSON.stringify(newState)}`);
+        this.setState(newState, () => { completed = true; });
+        await waitWhile(() => !completed, `wait new state applying: ${JSON.stringify(newState)}`);
         console.log("New state applied");
     }
 
-    async playMP3Fragment(startTim:number,endTim:number) {      
-        if (!this.state.configSettings.mp3Enabled || this.state.isPaused){
+    async playMP3Fragment(startTim: number, endTim: number) {
+        if (!this.state.configSettings.mp3Enabled || this.state.isPaused) {
             return;
         }
-        await this.waitStateApplying({startTime:startTim,endTime:endTim,isMP3Playing:true});
+        await this.waitStateApplying({ startTime: startTim, endTime: endTim, isMP3Playing: true });
         if (this.aref.current && this.state.file) {
             this.aref.current.currentTime = this.state.startTime;
             this.aref.current.play();
-            await waitWhile(() => this.state.isMP3Playing === true,"wait state.isMP3Playing=false");
+            await waitWhile(() => this.state.isMP3Playing === true, "wait state.isMP3Playing=false");
         }
     }
 
 
-    async playSayButton(lng:langEnum,textToSay:string) {
-        if(this.state.isPaused){
-            await waitWhile(() => this.state.isPaused,"EN wait switching 'Pause' mode to 'Start'");
+    async playSayButton(lng: langEnum, textToSay: string) {
+        if (this.state.isPaused) {
+            await waitWhile(() => this.state.isPaused, "EN wait switching 'Pause' mode to 'Start'");
         }
-        this.setState({lang:lng,sayText:textToSay,isSayBtnPlaying:true});
-        await waitWhile(() => this.state.isSayBtnPlaying === false,`${lng} wait applying new text=${textToSay}`);
+        this.setState({ lang: lng, sayText: textToSay, isSayBtnPlaying: true });
+        await waitWhile(() => this.state.isSayBtnPlaying === false, `${lng} wait applying new text=${textToSay}`);
         if (this.sayBtnWrapperRef.current) {
             this.sayBtnWrapperRef.current.getElementsByTagName("button")[0].click();
         }
-        await waitWhile(() => this.state.isSayBtnPlaying === true,`${lng} wait completing the speech`);         
+        await waitWhile(() => this.state.isSayBtnPlaying === true, `${lng} wait completing the speech`);
     }
 
-    async listenAndRecognizeVoiceAnswer(){
-        this.setState({SRecognizerCommand:SRCommand.Start});
+    async listenAndRecognizeVoiceAnswer() {
+        this.setState({ SRecognizerCommand: SRCommand.Start });
         await waitWhileWithTimeout(
             this.state.configSettings.pause * 100,
-            ()=>!this.state.SRecognitionCheckPassed,
+            () => !this.state.SRecognitionCheckPassed,
             "Wait recognition check");
-        this.setState({SRecognizerCommand:SRCommand.Stop});
-    } 
+        this.setState({ SRecognizerCommand: SRCommand.Stop });
+    }
 
-    async sayRecognitionResult(){
-        if(!this.state.lastRecognitionResult){
+    async sayRecognitionResult() {
+        if (!this.state.lastRecognitionResult) {
             return;
         }
-        await this.playSayButton(this.state.lastRecognitionResult.evaluationTextLanguage,this.state.lastRecognitionResult.evaluationText);
-        this.setState({lastRecognitionResult:undefined});
+        await this.playSayButton(this.state.lastRecognitionResult.evaluationTextLanguage, this.state.lastRecognitionResult.evaluationText);
+        this.setState({ lastRecognitionResult: undefined });
     }
 
     renderLoadFile() {
@@ -414,13 +464,13 @@ export class SPlayer extends React.Component<any, ISPlayerState> {
             </div>
         );
     }
- 
+
     renderSRecognizer() {
         return (
             <div className="srecognizer-container">
-                <SRecognizer parent={this} onChange={(text:string)=>{
+                <SRecognizer parent={this} onChange={(text: string) => {
                     this.handleRecognitionResult(text);
-                }}  />
+                }} />
             </div>
         )
     }

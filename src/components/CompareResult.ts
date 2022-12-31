@@ -39,7 +39,8 @@ function devideWordsContainingHyphen(inStr:string){
   export enum VoiceCommand{
     NoCommand="NoCommand",
     StopListenAndGiveResult="StopListenAndGiveResult",
-    GoNextItem="GoNextItem"
+    GoNextItem="GoNextItem",
+    ClearListenResultAndListenAgain="ClearListenResultAndListenAgain"
   }
   
 
@@ -60,7 +61,8 @@ interface IVoiceCommandItem{
 
 const voiceCommandWords:IVoiceCommandItem[]=[
   {key:VoiceCommand.StopListenAndGiveResult,words:["yeah","yes"]},
-  {key:VoiceCommand.GoNextItem,words:["next"]}
+  {key:VoiceCommand.GoNextItem,words:["next"]},
+  {key:VoiceCommand.ClearListenResultAndListenAgain,words:["again"]},
 ];
 
 interface IRecognizeCommandResult{
