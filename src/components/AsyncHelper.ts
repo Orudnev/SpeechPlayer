@@ -17,7 +17,7 @@ export async function waitWhileWithTimeout(timeout_ms:number,conditionFunc: () =
         msCounter = msCounter + 200;
         await wait();
         if(message){
-            console.log("witeWhileWithTimeout:(",timeout_ms-msCounter,")   ",message);
+            //console.log("witeWhileWithTimeout:(",timeout_ms-msCounter,")   ",message);
         }
     }
 }

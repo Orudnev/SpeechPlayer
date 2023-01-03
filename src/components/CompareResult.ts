@@ -7,7 +7,7 @@ function devideWordsContainingHyphen(inStr:string){
   }
   
   function filterUnnecessarySymbols(inStr: string) {
-    let result = inStr.replace(/[\.,]/g, "");
+    let result = inStr.replace(/[\.]/g, "");
     result = devideWordsContainingHyphen(result);
     return result;
   }
@@ -96,7 +96,42 @@ function recognizeCommand(testStr:string):IRecognizeCommandResult{
 }
 
 
+interface IWrongRecognizePattern{
+  key:string;
+  val:string[];
+}
+
+const WrongRecognizePatterns:IWrongRecognizePattern[]=[
+  {key:"script tag",val:["kryptek","prepdeck","cryptic","ripta"]},
+];
+
+
+function applyPatterns(etalonStr:string, testStr:string):string{
+  let tstWcnt = getWordCounts(testStr);
+  let result = "";
+  tstWcnt.forEach(wcnt=>{
+    WrongRecognizePatterns.forEach(pattern=>{
+       if(!etalonStr.toLowerCase().includes(pattern.key)){
+          return false;
+       }
+       let pv = pattern.val.find(s=>s==wcnt.word);
+       if(pv){
+          result += (result?" ":"") + pattern.key;
+       }
+    })
+  });
+  if (result){
+    result = " " + result.trim();
+  }
+  return result;
+}
+
 export default  function compareResult(etalonStr: string, wholeTestStr: string):ICompareResult {
+    let recognizedStr = applyPatterns(etalonStr,wholeTestStr);
+    wholeTestStr += recognizedStr;
+    if(recognizedStr){
+      console.log(wholeTestStr);
+    }
     let cmdRecognResult = recognizeCommand(wholeTestStr);
     let testStr = cmdRecognResult.textBeforeCommand;
     let etalonWCnt = getWordCounts(etalonStr);
@@ -104,6 +139,7 @@ export default  function compareResult(etalonStr: string, wholeTestStr: string):
     let testWCnt = getWordCounts(testStr);
     let missingWords: WordCount[] = [];
     let missingWCnt = 0;
+    
     for (let i = 0; i < etalonWCnt.length; i++) {
       let eItm = etalonWCnt[i];
       totalWcnt += eItm.count;

@@ -301,15 +301,6 @@ export class SPlayer extends React.Component<any, ISPlayerState> {
             if (!this.state.isStarted) {
                 break;
             }
-            await this.listenAndRecognizeVoiceAnswer();
-            if (this.state.lastRecognitionResult && this.state.lastRecognitionResult.command) {
-                if (this.state.lastRecognitionResult.command == VoiceCommand.GoNextItem) {
-                    this.state.lastRecognitionResult.command = VoiceCommand.NoCommand;
-                    i++;
-                    continue;
-                }
-                this.state.lastRecognitionResult.command = VoiceCommand.NoCommand;
-            }
             await this.sayRecognitionResult();
             if (this.state.MoveNextItemAutomatically) {
                 i++;
@@ -349,6 +340,11 @@ export class SPlayer extends React.Component<any, ISPlayerState> {
             await this.listenAndRecognizeVoiceAnswer();
             if (this.state.lastRecognitionResult && this.state.lastRecognitionResult.command) {
                 if (this.state.lastRecognitionResult.command == VoiceCommand.ClearListenResultAndListenAgain) {
+                    await this.waitStateApplying(
+                        {
+                            SRecognitionCheckPassed: false,
+                            SRecognizerCommand: SRCommand.Stop,
+                        });                    
                     continue;
                 }
                 if (this.state.lastRecognitionResult.command == VoiceCommand.GoNextItem) {
@@ -418,7 +414,7 @@ export class SPlayer extends React.Component<any, ISPlayerState> {
     renderLoadFile() {
         return (
             <div className="load-file-page">
-                <div className='app-version'>Version: 1.0.2</div>
+                <div className='app-version'>Version: 1.0.3</div>
                 <label >
                     <input type="file" onChange={(e: any) => {
                         let f = e.currentTarget?.files[0];

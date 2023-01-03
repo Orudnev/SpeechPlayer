@@ -11,7 +11,8 @@ const SpeechlySpeechRecognition = createSpeechlySpeechRecognition(appId);
 
 export enum SRCommand{
     Start="Start",
-    Stop="Stop"
+    Stop="Stop",
+    Reset="Reset"
 }
 
 export interface ISRecognizerProps{
@@ -52,6 +53,13 @@ const SRecognizer = (props:ISRecognizerProps) => {
             SpeechRecognition.stopListening();
         }
     }
+
+    if(command == SRCommand.Reset){
+        if (transcript){
+            resetTranscript();
+        }
+    }
+
 
     if(props.onChange && transcript){
         if(lastRecognizedText != transcript){
