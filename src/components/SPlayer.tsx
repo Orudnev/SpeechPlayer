@@ -474,7 +474,7 @@ export class SPlayer extends React.Component<any, ISPlayerState> {
     renderLoadFile() {
         return (
             <div className="load-file-page">
-                <div className='app-version'>Version: 1.0.3</div>
+                <div className='app-version'>Version: 1.0.4</div>
                 <label >
                     <input type="file" onChange={(e: any) => {
                         let f = e.currentTarget?.files[0];
