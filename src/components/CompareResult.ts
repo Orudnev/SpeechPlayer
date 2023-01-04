@@ -108,7 +108,7 @@ const WrongRecognizePatterns:IWrongRecognizePattern[]=[
 
 function applyPatterns(etalonStr:string, testStr:string):string{
   let tstWcnt = getWordCounts(testStr);
-  let result = "";
+  let result = testStr;
   tstWcnt.forEach(wcnt=>{
     WrongRecognizePatterns.forEach(pattern=>{
        if(!etalonStr.toLowerCase().includes(pattern.key)){
@@ -116,24 +116,17 @@ function applyPatterns(etalonStr:string, testStr:string):string{
        }
        let pv = pattern.val.find(s=>s==wcnt.word);
        if(pv){
-          result += (result?" ":"") + pattern.key;
+          result = result.replace(pv,pattern.key);
        }
     })
   });
-  if (result){
-    result = " " + result.trim();
-  }
   return result;
 }
 
-export default  function compareResult(etalonStr: string, wholeTestStr: string):ICompareResult {
-    let recognizedStr = applyPatterns(etalonStr,wholeTestStr);
-    wholeTestStr += recognizedStr;
-    if(recognizedStr){
-      console.log(wholeTestStr);
-    }
+export default function compareResult(etalonStr: string, wholeTestStr: string):ICompareResult {
     let cmdRecognResult = recognizeCommand(wholeTestStr);
     let testStr = cmdRecognResult.textBeforeCommand;
+    testStr = applyPatterns(etalonStr,testStr);
     let etalonWCnt = getWordCounts(etalonStr);
     let totalWcnt = 0;
     let testWCnt = getWordCounts(testStr);
