@@ -58,7 +58,7 @@ function GetItems(jsonObj: any): IItem[] {
     if (firstItem.hasOwnProperty("p1")) {
         result = jsonObj.items.map((itm: any) => {
             let person1 = createISpeechInstance(itm.p1);
-            let p2Parts = itm.p2.en.split(/[.,]/);
+            let p2Parts = itm.p2.en.split(/[.]/);
             let person2 = p2Parts.map((itm: string) => createISpeechInstance({ en: itm }));
 
             return { p1: person1, p2: person2 };
@@ -69,20 +69,35 @@ function GetItems(jsonObj: any): IItem[] {
     return result;
 }
 
+interface IResultItem{
+    itemIndex:number;
+    repeatCount:number;
+    lastTime:Number;
+}
+
+interface IResultRecord{
+    arc:string;
+    json:string;
+    itemCount:number;
+    items:IResultItem[];
+}
 
 interface ISPlayerState {
-    file?: File,
-    url?: string,
-    currItemIndex: number,
-    startTime: number,
-    endTime: number,
-    isMP3Playing: boolean,
-    isSayBtnPlaying: boolean,
-    SRecognizerCommand: SRCommand,
-    SRecognitionCheckPassed: boolean,
-    lastRecognitionResult?: ICompareResult,
-    lang: langEnum,
-    sayText: string,
+    file?: File;
+    url?: string;
+    zipFileName:string;
+    jsonFileName:string;
+    currItemIndex: number;
+    currItemSetIndex: number;
+    startTime: number;
+    endTime: number;
+    isMP3Playing: boolean;
+    isSayBtnPlaying: boolean;
+    SRecognizerCommand: SRCommand;
+    SRecognitionCheckPassed: boolean;
+    lastRecognitionResult?: ICompareResult;
+    lang: langEnum;
+    sayText: string;
     isStarted: boolean;
     isPaused: boolean;
     configPaneVisibility: boolean;
@@ -144,7 +159,6 @@ const PauseTuner = (props: IPauseTunerProps) => {
     );
 }
 
-
 export class SPlayer extends React.Component<any, ISPlayerState> {
     aref: React.RefObject<HTMLAudioElement>;
     sayBtnWrapperRef: React.RefObject<HTMLDivElement>;
@@ -155,12 +169,15 @@ export class SPlayer extends React.Component<any, ISPlayerState> {
         this.state = {
             file: undefined,
             url: undefined,
+            zipFileName:"",
+            jsonFileName:"",
             isMP3Playing: false,
             isSayBtnPlaying: false,
             startTime: 0,
             endTime: 0,
             lang: langEnum.ruRu,
             currItemIndex: 0,
+            currItemSetIndex:0,
             sayText: "",
             isStarted: false,
             isPaused: false,
@@ -225,6 +242,7 @@ export class SPlayer extends React.Component<any, ISPlayerState> {
     loadFile(selFile: File) {
         JSZip.loadAsync(selFile as Blob)
             .then((zip) => {
+                let zipFname = selFile.name;
                 let fileNames = [];
                 for (let prop in zip.files) {
                     fileNames.push(prop);
@@ -232,6 +250,7 @@ export class SPlayer extends React.Component<any, ISPlayerState> {
                 let jsonFileName = fileNames.find(itm => itm.includes(".json"));
                 let mp3FileName = fileNames.find(itm => itm.includes(".mp3"));
                 if (jsonFileName) {
+                    this.setState({zipFileName:zipFname, jsonFileName:jsonFileName})
                     zip.files[jsonFileName].async('blob').then((res: any) => {
                         binToStringConverter.readAsText(res);
                     });
@@ -276,32 +295,61 @@ export class SPlayer extends React.Component<any, ISPlayerState> {
                 if (this.state.items[0].hasOwnProperty("p1")) {
                     this.startPlayDialogue();
                 } else {
-                    this.startPlaySpeech();
+                    this.startPlaySpeech(this.state.items as ISpeechItem[]);
                 }
             }
         });
     }
 
+    savePassedItem(){
+        let resultsJsonStr = localStorage.getItem(lstorageKey.results); 
+        let result:IResultRecord[] = []; 
+        if (resultsJsonStr) {
+            result = JSON.parse(resultsJsonStr) as IResultRecord[];
+        }
+        let newResult = result.filter(rec=>rec.arc != this.state.zipFileName && rec.json != this.state.jsonFileName);
+        let oldRec = result.find(rec=>rec.arc == this.state.zipFileName && rec.json == this.state.jsonFileName);
+        let newItems:IResultItem[] = [];
+        let oldRepeatCount = 0;
+        if(oldRec){
+            newItems = oldRec.items.filter(itm=>itm.itemIndex != this.state.currItemSetIndex);
+            let oldItem = oldRec.items.find(itm=>itm.itemIndex == this.state.currItemSetIndex);
+            if(oldItem){
+                oldRepeatCount = oldItem.repeatCount;
+            }
+        } 
+        let newItem:IResultItem = {itemIndex:this.state.currItemSetIndex,repeatCount:oldRepeatCount+1,lastTime:new Date().getTime()};
+        newItems.push(newItem);
+        let newRec:IResultRecord = {arc:this.state.zipFileName,json:this.state.jsonFileName,itemCount:this.state.items.length,items:newItems};
+        newResult.push(newRec);
+        let jsonStrToSave = JSON.stringify(newResult);
+        localStorage.setItem(lstorageKey.results, jsonStrToSave);
+    }
+
+
     async startPlayDialogue() {
         for (let i: number = 0; i < this.state.items.length;) {
             await this.waitStateApplying(
                 {
-                    currItemIndex: i,
+                    currItemSetIndex: i,
                     SRecognitionCheckPassed: false,
                     SRecognizerCommand: SRCommand.Stop,
                 });
             let currItem = this.state.items[i] as IDialogueItem;
+            console.log("currItem:",currItem);
             if (this.state.isStarted && this.state.configSettings.enEnabled) {
                 await this.playSayButton(langEnum.enUs, currItem.p1.en);
             }
             if (this.state.isStarted) {
-                this.waitStateApplying({ items: currItem.p2 });
-                await this.startPlaySpeech();
+                await this.startPlaySpeech(currItem.p2);
+                if(this.state.lastRecognitionResult && this.state.lastRecognitionResult.command == VoiceCommand.MarkItemAsPassed){
+                    this.state.lastRecognitionResult.command = VoiceCommand.NoCommand;
+                    this.savePassedItem()
+                }                  
             }
             if (!this.state.isStarted) {
                 break;
             }
-            await this.sayRecognitionResult();
             if (this.state.MoveNextItemAutomatically) {
                 i++;
             }
@@ -309,8 +357,13 @@ export class SPlayer extends React.Component<any, ISPlayerState> {
         this.setState({ isStarted: false });
     }
 
-    async startPlaySpeech() {
-        for (let i: number = 0; i < this.state.items.length;) {
+    async startPlaySpeech(items:ISpeechItem[]) {
+        for (let i: number = 0; i < items.length;) {
+            let currItem = items[i];
+            if(!currItem.en){
+                i++;
+                continue;
+            }
             if (!this.state.lastRecognitionResult || this.state.lastRecognitionResult.command != VoiceCommand.ClearListenResultAndListenAgain) {
                 await this.waitStateApplying(
                     {
@@ -318,7 +371,6 @@ export class SPlayer extends React.Component<any, ISPlayerState> {
                         SRecognitionCheckPassed: false,
                         SRecognizerCommand: SRCommand.Stop,
                     });
-                let currItem = this.state.items[i];
                 let currSpeechItem = GetSpeechItem(currItem);
                 if (this.state.isStarted && this.state.configSettings.mp3Enabled && this.state.file && currSpeechItem.startTime && currSpeechItem.endTime) {
                     await this.playMP3Fragment(currSpeechItem.startTime, currSpeechItem.endTime);
@@ -336,7 +388,8 @@ export class SPlayer extends React.Component<any, ISPlayerState> {
             if (!this.state.isStarted) {
                 break;
             }
-
+            
+            console.log("listen and recognize:",items[i]);
             await this.listenAndRecognizeVoiceAnswer();
             if (this.state.lastRecognitionResult && this.state.lastRecognitionResult.command) {
                 if (this.state.lastRecognitionResult.command == VoiceCommand.ClearListenResultAndListenAgain) {
@@ -347,6 +400,13 @@ export class SPlayer extends React.Component<any, ISPlayerState> {
                         });                    
                     continue;
                 }
+                if(this.state.lastRecognitionResult.command == VoiceCommand.MarkItemAsPassed){
+                    break;
+                }                
+                if(this.state.lastRecognitionResult.command == VoiceCommand.GoNextItemSet){
+                    this.state.lastRecognitionResult.command = VoiceCommand.NoCommand;
+                    break;
+                }
                 if (this.state.lastRecognitionResult.command == VoiceCommand.GoNextItem) {
                     this.state.lastRecognitionResult.command = VoiceCommand.NoCommand;
                     i++;
@@ -354,12 +414,12 @@ export class SPlayer extends React.Component<any, ISPlayerState> {
                 }
                 this.state.lastRecognitionResult.command = VoiceCommand.NoCommand;
             }
-            await this.sayRecognitionResult();
+            //await this.sayRecognitionResult();
             if (this.state.MoveNextItemAutomatically) {
                 i++;
             }
         }
-        this.setState({ isStarted: false });
+        //this.setState({ isStarted: false });
     }
 
     async waitStateApplying(newState: any) {

@@ -38,9 +38,10 @@ function devideWordsContainingHyphen(inStr:string){
 
   export enum VoiceCommand{
     NoCommand="NoCommand",
-    StopListenAndGiveResult="StopListenAndGiveResult",
+    MarkItemAsPassed="MarkItemAsPassed",
     GoNextItem="GoNextItem",
-    ClearListenResultAndListenAgain="ClearListenResultAndListenAgain"
+    ClearListenResultAndListenAgain="ClearListenResultAndListenAgain",
+    GoNextItemSet="GoNextItemSet"
   }
   
 
@@ -60,9 +61,11 @@ interface IVoiceCommandItem{
 }
 
 const voiceCommandWords:IVoiceCommandItem[]=[
-  {key:VoiceCommand.StopListenAndGiveResult,words:["yeah","yes"]},
+  {key:VoiceCommand.MarkItemAsPassed,words:["yeah","yes"]},
   {key:VoiceCommand.GoNextItem,words:["next"]},
   {key:VoiceCommand.ClearListenResultAndListenAgain,words:["again"]},
+  {key:VoiceCommand.GoNextItemSet,words:["app"]},
+  {key:VoiceCommand.ClearListenResultAndListenAgain,words:["down"]},
 ];
 
 interface IRecognizeCommandResult{
@@ -102,7 +105,9 @@ interface IWrongRecognizePattern{
 }
 
 const WrongRecognizePatterns:IWrongRecognizePattern[]=[
-  {key:"script tag",val:["kryptek","prepdeck","cryptic","ripta"]},
+  {key:"script tag",val:["kryptek","prepdeck","cryptic","ripta","call Jack"]},
+  {key:"acync",val:["ac","a scene","a seam","ripta"]},
+  {key:"without",val:["result","we thought"]},
 ];
 
 
@@ -126,7 +131,16 @@ function applyPatterns(etalonStr:string, testStr:string):string{
 export default function compareResult(etalonStr: string, wholeTestStr: string):ICompareResult {
     let cmdRecognResult = recognizeCommand(wholeTestStr);
     let testStr = cmdRecognResult.textBeforeCommand;
-    testStr = applyPatterns(etalonStr,testStr);
+    //testStr = applyPatterns(etalonStr,testStr);
+    if(!etalonStr){
+      return {
+        command:cmdRecognResult.command,
+        totalWCount:0,
+        missingWcount:0,
+        missingWords:[],
+        evaluationText:"",
+        evaluationTextLanguage:langEnum.enUs};      
+    }
     let etalonWCnt = getWordCounts(etalonStr);
     let totalWcnt = 0;
     let testWCnt = getWordCounts(testStr);
