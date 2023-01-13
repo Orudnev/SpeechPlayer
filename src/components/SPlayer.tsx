@@ -37,6 +37,11 @@ interface IDialogueItem {
 
 type IItem = ISpeechItem | IDialogueItem;
 
+interface IOrderedItem{
+    item:IItem;
+    result?:IResultItem;
+}
+
 function GetSpeechItem(item: IItem, person = "p2"): ISpeechItem {
     if (item.hasOwnProperty("en")) {
         return item as ISpeechItem;
@@ -328,16 +333,47 @@ export class SPlayer extends React.Component<any, ISPlayerState> {
 
 
     async startPlayDialogue() {
-        for (let i: number = 0; i < this.state.items.length;) {
+        let resultsJsonStr = localStorage.getItem(lstorageKey.results); 
+        let result:IResultRecord[] = []; 
+        if (resultsJsonStr) {
+            result = JSON.parse(resultsJsonStr) as IResultRecord[];
+        }   
+        let selFileResult = result.find(itm=>itm.json == this.state.jsonFileName);
+        let orderedItems:IOrderedItem[] = this.state.items.map((itm,index)=>{
+            let itmdlg = itm as IDialogueItem;
+            let resultItm:IResultItem|undefined = undefined;
+            if(selFileResult){
+                resultItm = selFileResult.items.find(itm=>itm.itemIndex == index);
+            } 
+            let newOrdItm:IOrderedItem = {item:itmdlg,result:resultItm};
+            return newOrdItm;
+        });
+        orderedItems = orderedItems.sort((itm1,itm2)=>{
+            if(!itm1.result && !itm2.result) return 0;
+            if(!itm1.result && itm2.result) return -1;
+            if(itm1.result && !itm2.result) return 1;
+            if(itm1.result && itm2.result){
+                if(itm1.result.repeatCount>itm2.result.repeatCount){
+                    return 0;
+                }
+                if(itm1.result.repeatCount>itm2.result.repeatCount){
+                    return 1;
+                }
+                return -1;
+            }
+            return 0;
+        });
+        
+        for (let i: number = 0; i < orderedItems.length;) {
             await this.waitStateApplying(
                 {
                     currItemSetIndex: i,
                     SRecognitionCheckPassed: false,
                     SRecognizerCommand: SRCommand.Stop,
                 });
-            let currItem = this.state.items[i] as IDialogueItem;
+            let currItem = orderedItems[i].item as IDialogueItem;
             console.log("currItem:",currItem);
-            if (this.state.isStarted && this.state.configSettings.enEnabled) {
+            if (this.state.isStarted ) {
                 await this.playSayButton(langEnum.enUs, currItem.p1.en);
             }
             if (this.state.isStarted) {
