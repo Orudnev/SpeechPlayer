@@ -1,9 +1,9 @@
 import React, { FunctionComponent } from 'react';
-import {AppAction, dispatchFunc,ActAsyncReadZipFile} from '../AppData';
+import {AppAction, DispatchFunc,ActAsyncReadZipFile} from '../AppData';
 
 
 interface ISelectDataSourceProps {
-    dispatch:dispatchFunc;
+    dispatch:DispatchFunc;
 }
 export const SelectDataSource: FunctionComponent<ISelectDataSourceProps> = (props) => {
     return (

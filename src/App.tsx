@@ -7,26 +7,29 @@ import {
   Link  
 } from "react-router-dom";
 import './App.css';
-import {appReducer,appInitState} from "./AppData";
+import {appReducer,appInitState,DispatchFunc,AppAction } from "./AppData";
 import {SelectDataSource} from "./components/SelectDataSource";
 import { RoutePath } from './AppData';
+import { DlgPlayer } from './components/DlgPlayer';
 import {SPlayer} from "./components/SPlayer";
 import test from './test';
 
 export const AppGlobal = {
-  navigate:(url:string)=>{}
+  navigate:(url:string)=>{},
+  dispatch:(action:AppAction)=>{},
 }
 
 
 function App() {
   AppGlobal.navigate = useNavigate();
   const [state, dispatch] = useReducer(appReducer, appInitState);
+  AppGlobal.dispatch = dispatch;
   return ( 
     <div> 
       <Routes>
         <Route path={RoutePath.root} element={<SelectDataSource dispatch={dispatch} />} />
         <Route path={RoutePath.speech} element={<div>play speech</div>}/>
-        <Route path={RoutePath.dialog} element={<div>play dialog</div>}/>
+        <Route path={RoutePath.dialog} element={<DlgPlayer appState={state} />} /> 
       </Routes>
     </div> 
     );

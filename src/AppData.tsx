@@ -1,7 +1,7 @@
 import React, { useReducer } from 'react';
 import JSZip from 'jszip';
 import { waitWhile } from './components/AsyncHelper';
-
+import { AppGlobal } from './App';
 
 export enum RoutePath{
     root = "/",
@@ -31,10 +31,12 @@ interface ISayTextData{
 }
 
 export enum AppStatusEnum{
-    none,
-    SetDataSourceStart,
-    SetDataSourceComplete
-
+    none="none",
+    SetDataSourceStart="SetDataSourceStart",
+    SetDataSourceComplete="SetDataSourceComplete",
+    DlgPaused="DlgPaused",
+    DlgShowItemAndSayQuestion="DlgShowItemAndSayQuestion",
+    DlgSayAnswer="DlgSayAnswer"
 }
 
 export interface IAppReducerstate{
@@ -43,6 +45,7 @@ export interface IAppReducerstate{
     SelectedZipFile:File|undefined;
     SelectedJsonFileName:string;
     MP3url:string;
+    itemsRaw:any[];
 }
 
 export interface IActSetDataSourceStart{
@@ -54,18 +57,26 @@ export interface IActSetDataSourceComplete{
     jsonFileBodyStr:string;
 }
 
-export type dispatchFunc = (action:AppAction)=>void;
+export interface IActSetAppStatus{
+    type:"ActSetAppStatus";
+    newStatus:AppStatusEnum;
+}
+
+
+export type DispatchFunc = (action:AppAction)=>void;
 
 export type AppAction = 
-     IActSetDataSourceStart
-    |IActSetDataSourceComplete;
+        IActSetDataSourceStart
+    |   IActSetDataSourceComplete
+    |   IActSetAppStatus;
 
 export const appInitState:IAppReducerstate = {
     AppStatus:AppStatusEnum.none,
     CurrentRoutePath:RoutePath.root,
     SelectedZipFile:undefined,
     SelectedJsonFileName:"",
-    MP3url:""
+    MP3url:"",
+    itemsRaw:[]
 };
 
 export function appReducer(state:IAppReducerstate,action:AppAction){
@@ -76,8 +87,16 @@ export function appReducer(state:IAppReducerstate,action:AppAction){
             newState.AppStatus = AppStatusEnum.SetDataSourceStart;
             return newState;
         case 'ActSetDataSourceComplete':
-            let s=1;
-            break; 
+            newState.CurrentRoutePath = RoutePath.speech;
+            newState.AppStatus = AppStatusEnum.DlgPaused;        
+            processJsonFile(action.jsonFileBodyStr,newState);
+            setTimeout(() => {
+                AppGlobal.navigate(newState.CurrentRoutePath);    
+            }, 0);
+            return newState;
+        case 'ActSetAppStatus':
+            newState.AppStatus = action.newStatus;
+            return newState;
     }
     return state;
 }
@@ -104,15 +123,16 @@ class ConvertBinToStrClass{
 
 const ConvertBinToStr = new ConvertBinToStrClass();
 
-function getRoutePath(listItem:any):RoutePath{
+function processJsonFile(jsonFileContentStr:string,newState:IAppReducerstate){
+    let incomingJson = JSON.parse(jsonFileContentStr);
+    newState.itemsRaw = incomingJson.items;
+    let listItem = newState.itemsRaw[0];
     if(listItem.hasOwnProperty("p1")){
-        return RoutePath.dialog;
+        newState.CurrentRoutePath = RoutePath.dialog;
     }
-    return RoutePath.speech;
 }
 
-
-export async function ActAsyncReadZipFile(dispatch:dispatchFunc,zipFile:File){
+export async function ActAsyncReadZipFile(dispatch:DispatchFunc,zipFile:File){
     dispatch({type:'ActSetDataSourceStart'});
     JSZip.loadAsync(zipFile as Blob)
     .then((zip) => {
