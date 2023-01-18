@@ -1,4 +1,4 @@
-import {langEnum} from './SPlayer';
+import {langEnum} from '../AppData';
 
 
 function devideWordsContainingHyphen(inStr:string){

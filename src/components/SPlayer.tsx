@@ -5,11 +5,7 @@ import { SayButton } from 'react-say';
 import SRecognizer, { SRCommand } from './SRecognizer';
 import compareResult, { ICompareResult, VoiceCommand } from './CompareResult';
 import { wait, waitWhile, waitWhileWithTimeout } from './AsyncHelper';
-
-export enum langEnum {
-    enUs = "en-US",
-    ruRu = "ru=RU"
-}
+import {langEnum} from "../AppData";
 
 enum lstorageKey {
     config = "config",
