@@ -10,13 +10,14 @@ const SpeechlySpeechRecognition = createSpeechlySpeechRecognition(appId);
 
 
 export enum SRCommand{
+    None="None",
     Start="Start",
     Stop="Stop",
     Reset="Reset"
 }
 
 export interface ISRecognizerProps{
-    parent:SPlayer,  
+    command:SRCommand;
     onChange:(text:string)=>void;
 }
 
@@ -31,12 +32,10 @@ const SRecognizer = (props:ISRecognizerProps) => {
     
 
     if (!browserSupportsSpeechRecognition) {
-      return <span>Browser doesn't support speech recognition.</span>;
+      alert("Browser doesn't support speech recognition.");
+      return (<div />);
     }
-    let command = props.parent.state.SRecognizerCommand;
-    if(!command){
-        return (<div></div>);
-    }
+    let command = props.command;
 
     if(command == SRCommand.Start){
         if(!listening){
@@ -67,12 +66,15 @@ const SRecognizer = (props:ISRecognizerProps) => {
             lastRecognizedText = transcript;    
         }
     }
-  
+    let imgClassStr = (listening ? 'img-microphoneOn' : 'img-microphoneOff')
     return (
-      <div>
-        <p>Microphone: {listening ? 'on' : 'off'}</p>
-        <div className='splayer_page__text'>{transcript}</div>
-      </div>
+      <button className={"toolbar-button"}>
+        <div className={imgClassStr} />
+      </button>
     );
   };
+
+
   export default SRecognizer;
+
+

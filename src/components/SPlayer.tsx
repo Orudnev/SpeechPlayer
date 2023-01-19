@@ -555,12 +555,13 @@ export class SPlayer extends React.Component<any, ISPlayerState> {
 
     renderSRecognizer() {
         return (
-            <div className="srecognizer-container">
-                <SRecognizer parent={this} onChange={(text: string) => {
-                    this.handleRecognitionResult(text);
-                }} />
-            </div>
-        )
+            <div/>
+            // <div className="srecognizer-container">
+            //     <SRecognizer parent={this} onChange={(text: string) => {
+            //         this.handleRecognitionResult(text);
+            //     }} />
+            // </div>
+        );
     }
 
 

@@ -11,18 +11,21 @@ import {appReducer,appInitState,DispatchFunc,AppAction } from "./AppData";
 import {SelectDataSource} from "./components/SelectDataSource";
 import { RoutePath } from './AppData';
 import { DlgPlayer } from './components/DlgPlayer';
+import SRecognizer from './components/SRecognizer';
 import {SPlayer} from "./components/SPlayer";
 import test from './test';
 
 export const AppGlobal = {
   navigate:(url:string)=>{},
   dispatch:(action:AppAction)=>{},
+  state:appInitState
 }
 
 
 function App() {
   AppGlobal.navigate = useNavigate();
   const [state, dispatch] = useReducer(appReducer, appInitState);
+  AppGlobal.state = state;
   AppGlobal.dispatch = dispatch;
   return ( 
     <div> 

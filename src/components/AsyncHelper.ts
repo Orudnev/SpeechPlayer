@@ -7,7 +7,7 @@ export async function waitWhile(conditionFunc: () => boolean,message:string="") 
     while (conditionFunc()) {
         await wait();
         if(message){
-            //console.log("witeWhile:",message);
+            console.log("witeWhile:",message);
         }
     }
 }

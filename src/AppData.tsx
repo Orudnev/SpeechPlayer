@@ -2,6 +2,7 @@ import React, { useReducer } from 'react';
 import JSZip from 'jszip';
 import { waitWhile } from './components/AsyncHelper';
 import { AppGlobal } from './App';
+import {SRCommand} from './components/SRecognizer';
 
 export enum RoutePath{
     root = "/",
@@ -12,6 +13,18 @@ export enum RoutePath{
 export enum langEnum {
     enUs = "en-US",
     ruRu = "ru=RU"
+}
+
+export interface ISpeechItem {
+    en: string;
+    ru?: string;
+    startTime?: number;
+    endTime?: number;
+}
+
+export interface IDialogItem {
+    p1: ISpeechItem;
+    p2: ISpeechItem;
 }
 
 enum AsyncOperationType{
@@ -36,17 +49,10 @@ export enum AppStatusEnum{
     SetDataSourceComplete="SetDataSourceComplete",
     DlgPaused="DlgPaused",
     DlgShowItemAndSayQuestion="DlgShowItemAndSayQuestion",
-    DlgSayAnswer="DlgSayAnswer"
+    DlgSayAnswer="DlgSayAnswer",
 }
 
-export interface IAppReducerstate{
-    AppStatus:AppStatusEnum;
-    CurrentRoutePath:string;
-    SelectedZipFile:File|undefined;
-    SelectedJsonFileName:string;
-    MP3url:string;
-    itemsRaw:any[];
-}
+
 
 export interface IActSetDataSourceStart{
     type:"ActSetDataSourceStart";
@@ -62,13 +68,37 @@ export interface IActSetAppStatus{
     newStatus:AppStatusEnum;
 }
 
+export interface IActSelectItem{
+    type:"ActSelectItem";
+    newIndex:number;
+}
+
+export interface IActExecSRCommand{
+    type:"ActExecSRCommand";
+    command:SRCommand;
+}
+
 
 export type DispatchFunc = (action:AppAction)=>void;
 
 export type AppAction = 
         IActSetDataSourceStart
     |   IActSetDataSourceComplete
-    |   IActSetAppStatus;
+    |   IActSetAppStatus
+    |   IActSelectItem
+    |   IActExecSRCommand;
+
+export interface IAppReducerstate{
+    AppStatus:AppStatusEnum;
+    CurrentRoutePath:string;
+    SelectedZipFile:File|undefined;
+    SelectedJsonFileName:string;
+    MP3url:string;
+    SRecognizeCmd:SRCommand;
+    itemsRaw:any[];
+    selItemIndex:number;
+
+}
 
 export const appInitState:IAppReducerstate = {
     AppStatus:AppStatusEnum.none,
@@ -76,7 +106,9 @@ export const appInitState:IAppReducerstate = {
     SelectedZipFile:undefined,
     SelectedJsonFileName:"",
     MP3url:"",
-    itemsRaw:[]
+    SRecognizeCmd:SRCommand.Stop,
+    itemsRaw:[],
+    selItemIndex:-1,
 };
 
 export function appReducer(state:IAppReducerstate,action:AppAction){
@@ -97,8 +129,31 @@ export function appReducer(state:IAppReducerstate,action:AppAction){
         case 'ActSetAppStatus':
             newState.AppStatus = action.newStatus;
             return newState;
+        case 'ActSelectItem':
+            newState.selItemIndex = action.newIndex;
+            return newState;
+        case 'ActExecSRCommand':
+            newState.SRecognizeCmd = action.command;
+            return newState;
     }
     return state;
+}
+
+class AppDataHelperClass{
+    getSelectedDlgItem():IDialogItem|undefined{
+        if(AppGlobal.state.selItemIndex == -1){
+            return undefined;
+        }
+        return  AppGlobal.state.itemsRaw[AppGlobal.state.selItemIndex] as IDialogItem;
+    }
+    getNextDlgItemIndex():number{
+        return AppGlobal.state.selItemIndex+1;
+    }
+    isDlgStarted():boolean{
+        let st = AppGlobal.state;
+        let result = (st.AppStatus.includes("Dlg") && st.AppStatus != AppStatusEnum.DlgPaused);
+        return result;
+    }
 }
 
 class ConvertBinToStrClass{
@@ -131,6 +186,8 @@ function processJsonFile(jsonFileContentStr:string,newState:IAppReducerstate){
         newState.CurrentRoutePath = RoutePath.dialog;
     }
 }
+
+export const appDataHelper = new AppDataHelperClass();
 
 export async function ActAsyncReadZipFile(dispatch:DispatchFunc,zipFile:File){
     dispatch({type:'ActSetDataSourceStart'});
