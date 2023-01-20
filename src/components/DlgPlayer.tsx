@@ -1,8 +1,10 @@
 import React, { FunctionComponent, useState, useEffect } from 'react';
 import { AppGlobal } from '../App';
 import { AppStatusEnum, IAppReducerstate,appDataHelper, langEnum } from '../AppData';
+import { VoiceCommand } from './CompareResult';
 import { SayButtonWrapper } from './SayButtonWrapper';
 import SRecognizer, { SRCommand } from './SRecognizer';
+import {SRResultTextAnalyzer} from './SRResultAnalyzer';
 
 interface IDlgPlayerProps {
     appState: IAppReducerstate;
@@ -23,6 +25,7 @@ export const DlgPlayer: FunctionComponent<IDlgPlayerProps> = (props) => {
     let selItem = appDataHelper.getSelectedDlgItem();
     let dlgItemContentJsx = <div/>
     if(selItem && appDataHelper.isDlgStarted()){
+        SRResultTextAnalyzer.SetEtalonText(selItem.p2.en);
         let questionTextJsx = 
             <div>
                 <h3>Question:</h3>
@@ -34,14 +37,21 @@ export const DlgPlayer: FunctionComponent<IDlgPlayerProps> = (props) => {
                 <div>{selItem.p2.en}</div>
             </div>;
         
+        let popupCommand = <div/>;
+        if(props.appState.voiceCommand != VoiceCommand.NoCommand){
+            popupCommand =  
+            <div className="popup-container">
+                <div className="popup-content">Command</div>
+            </div>;                
+        }
 
         dlgItemContentJsx = 
             <div id="dlgItemContent" >
                 {questionTextJsx}
                 {answerTextJsx}
+                {popupCommand}
                 <SayButtonWrapper sayItemQueue={[{sayText:selItem.p1.en},{sayText:selItem.p2.en}]} 
                     onBeforeSay={(itemIndex)=>{
-                        console.log(itemIndex);
                         return true;
                     }} />
             </div>; 
@@ -70,6 +80,10 @@ export const DlgPlayer: FunctionComponent<IDlgPlayerProps> = (props) => {
                     <div className="img-config" />
                 </button>
                 <SRecognizer command={props.appState.SRecognizeCmd} onChange={(text:string)=>{
+                    if(text){
+                        SRResultTextAnalyzer.AddNewText(text);
+                    }
+                    
                     //AppGlobal.dispatch({type:"ActExecSRCommand",command:SRCommand.Reset});
                     console.log(text); 
                 }} />

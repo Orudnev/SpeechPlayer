@@ -1,7 +1,7 @@
 import {langEnum} from '../AppData';
 
 
-function devideWordsContainingHyphen(inStr:string){
+  function devideWordsContainingHyphen(inStr:string){
     let result = inStr.replace(/-/g, " ");
     return result;
   }

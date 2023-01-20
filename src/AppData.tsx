@@ -3,6 +3,7 @@ import JSZip from 'jszip';
 import { waitWhile } from './components/AsyncHelper';
 import { AppGlobal } from './App';
 import {SRCommand} from './components/SRecognizer';
+import { VoiceCommand } from './components/CompareResult';
 
 export enum RoutePath{
     root = "/",
@@ -78,6 +79,12 @@ export interface IActExecSRCommand{
     command:SRCommand;
 }
 
+export interface IActExecVoiceCommand{
+    type:"ActExecVoiceCommand";
+    command:VoiceCommand;
+}
+
+
 
 export type DispatchFunc = (action:AppAction)=>void;
 
@@ -86,7 +93,8 @@ export type AppAction =
     |   IActSetDataSourceComplete
     |   IActSetAppStatus
     |   IActSelectItem
-    |   IActExecSRCommand;
+    |   IActExecSRCommand
+    |   IActExecVoiceCommand;
 
 export interface IAppReducerstate{
     AppStatus:AppStatusEnum;
@@ -97,6 +105,7 @@ export interface IAppReducerstate{
     SRecognizeCmd:SRCommand;
     itemsRaw:any[];
     selItemIndex:number;
+    voiceCommand:VoiceCommand;
 
 }
 
@@ -109,6 +118,7 @@ export const appInitState:IAppReducerstate = {
     SRecognizeCmd:SRCommand.Stop,
     itemsRaw:[],
     selItemIndex:-1,
+    voiceCommand:VoiceCommand.NoCommand
 };
 
 export function appReducer(state:IAppReducerstate,action:AppAction){
@@ -134,6 +144,9 @@ export function appReducer(state:IAppReducerstate,action:AppAction){
             return newState;
         case 'ActExecSRCommand':
             newState.SRecognizeCmd = action.command;
+            return newState;
+        case 'ActExecVoiceCommand':
+            newState.voiceCommand = action.command;
             return newState;
     }
     return state;
