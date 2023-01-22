@@ -11,9 +11,9 @@ const SpeechlySpeechRecognition = createSpeechlySpeechRecognition(appId);
 
 export enum SRCommand{
     None="None",
-    Start="Start",
-    Stop="Stop",
-    Reset="Reset"
+    StartListen="StartListen",
+    StopListen="StopListen",
+    ResetResult="ResetResult"
 }
 
 export interface ISRecognizerProps{
@@ -61,7 +61,7 @@ const SRecognizer = (props:ISRecognizerProps) => {
     }
     let command = props.command;
 
-    if(command == SRCommand.Start){
+    if(command == SRCommand.StartListen){
         if(!listening){
             if (transcript){
                 resetTranscript();
@@ -71,18 +71,18 @@ const SRecognizer = (props:ISRecognizerProps) => {
             },0)
         }
         if(!stubTalkerInstance){
-            stubTalkerInstance = new stubTalker(props.onChange);
-            stubTalkerInstance.start();
+            //stubTalkerInstance = new stubTalker(props.onChange);
+            //stubTalkerInstance.start();
         }    
     }
 
-    if(command == SRCommand.Stop){
+    if(command == SRCommand.StopListen){
         if(listening){
             SpeechRecognition.stopListening();
         }
     }
 
-    if(command == SRCommand.Reset){
+    if(command == SRCommand.ResetResult){
         if (transcript){
             resetTranscript();
         }
@@ -95,6 +95,7 @@ const SRecognizer = (props:ISRecognizerProps) => {
         }
     }
     let imgClassStr = (listening ? 'img-microphoneOn' : 'img-microphoneOff')
+    return(<div />); 
     return (
       <button className={"toolbar-button"}>
         <div className={imgClassStr} />

@@ -183,7 +183,7 @@ export class SPlayer extends React.Component<any, ISPlayerState> {
             isStarted: false,
             isPaused: false,
             SRecognitionCheckPassed: false,
-            SRecognizerCommand: SRCommand.Stop,
+            SRecognizerCommand: SRCommand.StopListen,
             configPaneVisibility: false,
             configSettings: {
                 mp3Enabled: true,
@@ -302,6 +302,7 @@ export class SPlayer extends React.Component<any, ISPlayerState> {
         });
     }
 
+    
     savePassedItem(){
         let resultsJsonStr = localStorage.getItem(lstorageKey.results); 
         let result:IResultRecord[] = []; 
@@ -365,7 +366,7 @@ export class SPlayer extends React.Component<any, ISPlayerState> {
                 {
                     currItemSetIndex: i,
                     SRecognitionCheckPassed: false,
-                    SRecognizerCommand: SRCommand.Stop,
+                    SRecognizerCommand: SRCommand.StopListen,
                 });
             let currItem = orderedItems[i].item as IDialogueItem;
             console.log("currItem:",currItem);
@@ -401,7 +402,7 @@ export class SPlayer extends React.Component<any, ISPlayerState> {
                     {
                         currItemIndex: i,
                         SRecognitionCheckPassed: false,
-                        SRecognizerCommand: SRCommand.Stop,
+                        SRecognizerCommand: SRCommand.StopListen,
                     });
                 let currSpeechItem = GetSpeechItem(currItem);
                 if (this.state.isStarted && this.state.configSettings.mp3Enabled && this.state.file && currSpeechItem.startTime && currSpeechItem.endTime) {
@@ -428,7 +429,7 @@ export class SPlayer extends React.Component<any, ISPlayerState> {
                     await this.waitStateApplying(
                         {
                             SRecognitionCheckPassed: false,
-                            SRecognizerCommand: SRCommand.Stop,
+                            SRecognizerCommand: SRCommand.StopListen,
                         });                    
                     continue;
                 }
@@ -487,12 +488,12 @@ export class SPlayer extends React.Component<any, ISPlayerState> {
     }
 
     async listenAndRecognizeVoiceAnswer() {
-        this.setState({ SRecognizerCommand: SRCommand.Start });
+        this.setState({ SRecognizerCommand: SRCommand.StartListen });
         await waitWhileWithTimeout(
             this.state.configSettings.pause * 100,
             () => !this.state.SRecognitionCheckPassed,
             "Wait recognition check");
-        this.setState({ SRecognizerCommand: SRCommand.Stop });
+        this.setState({ SRecognizerCommand: SRCommand.StopListen });
     }
 
     async sayRecognitionResult() {

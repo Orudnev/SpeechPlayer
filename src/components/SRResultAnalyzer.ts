@@ -15,6 +15,7 @@ function filterUnnecessarySymbols(inStr: string) {
 
 export enum VoiceCommand {
     NoCommand = "NoCommand",
+    ListenCommand="ListenCommand",
     MarkItemAsPassed = "MarkItemAsPassed",
     GoNextItem = "GoNextItem",
     ClearListenResultAndListenAgain = "ClearListenResultAndListenAgain",
@@ -42,7 +43,6 @@ const voiceCommandWords: IVoiceCommandItem[] = [
 
 
 class SRResultTextAnalyzerClass {
-    prevRecognizedText = "";
     etalonText = "";
     allWords: SRResultWord[] = [];
     etalontWords: SRResultWord[] = [];
@@ -53,12 +53,12 @@ class SRResultTextAnalyzerClass {
         this.etalonText = text;
         let words = filterUnnecessarySymbols(text).split(" ");
         words.forEach(wrd => {
-            let rItem = this.etalontWords.find(rw => rw.text == wrd.toLocaleLowerCase());
+            let rItem = this.etalontWords.find(rw => rw.text == wrd.toLowerCase());
             if (rItem) {
                 rItem.etalonCount++;
             } else {
                 let newItem: SRResultWord = {
-                    text: wrd.toLocaleLowerCase(),
+                    text: wrd.toLowerCase(),
                     etalonCount: 1,
                     resultCount: 0
                 }
@@ -74,69 +74,77 @@ class SRResultTextAnalyzerClass {
         recognizedText = filterUnnecessarySymbols(recognizedText);
         let diffText = ""
         let equals = false;
-        for (let pos = 0; pos < this.prevRecognizedText.length; pos++) {
-            if (pos < recognizedText.length) {
-                let prevChar = this.prevRecognizedText.charAt(pos);
-                let currChar = recognizedText.charAt(pos);
+        let prevRecognizedText = AppGlobal.state.lastRecognizedText;
+        let lastWord = "";
+        for (let pos = 0; pos < recognizedText.length; pos++) {
+            let currChar = recognizedText.charAt(pos);
+            if(currChar==" "){
+                lastWord = "";
+            }
+            if (pos < prevRecognizedText.length) {
+                let prevChar = prevRecognizedText.charAt(pos);
                 if (prevChar.toLowerCase() == currChar.toLowerCase()) {
                     equals = true;
+                    lastWord += currChar;
                     continue;
-                } else {
-                    if (!equals) {
-                        break;
-                    }
-                    diffText += currChar;
                 }
             }
+            if(diffText==""){
+                diffText = lastWord;
+            }
+            diffText += currChar; 
         }
 
         if (!diffText) {
             diffText = recognizedText;
-        }
-
+        } 
+        console.log("prevRecText",prevRecognizedText);
+        console.log("recText",recognizedText);
+        console.log("diffText",diffText);
         if (this.isCommandMode) {
             this.processCommand(diffText);
             return;
         } else {
-            console.log("diffText:", diffText);
             if (this.findStartCommandWord(diffText)) {
                 this.isCommandMode = true;
+                AppGlobal.dispatch({type:"ActExecVoiceCommand",command:VoiceCommand.ListenCommand});
                 return;
             }
         }
 
         let words = diffText.split(" ");
         words.forEach(wrd => {
-            let rItem = this.etalontWords.find(rw => rw.text == wrd.toLocaleLowerCase());
+            let rItem = this.etalontWords.find(rw => rw.text == wrd.toLowerCase());
             if (rItem) {
                 rItem.resultCount++;
             }
-            let awItem = this.allWords.find(wi => wi.text == wrd.toLocaleLowerCase());
+            let awItem = this.allWords.find(wi => wi.text == wrd.toLowerCase());
             if (awItem) {
                 awItem.resultCount++;
             }
             else {
                 let newItem: SRResultWord = {
-                    text: wrd.toLocaleLowerCase(),
+                    text: wrd.toLowerCase(),
                     etalonCount: 0,
                     resultCount: 1
                 }
                 this.allWords.push(newItem);
             }
         });
-        this.prevRecognizedText = recognizedText;
+        AppGlobal.dispatch({type:"ActSetLastRecognizedText",text:recognizedText})
     }
 
     findStartCommandWord(text: string) {
-        let result = this.startCommandWords.some(sw => text.includes(sw));
+        let result = this.startCommandWords.some(sw => text.toLowerCase().includes(sw));
         return result;
     }
 
     processCommand(text: string) {
-        let fres = voiceCommandWords.find(vci => vci.words.some(w=>text.toLocaleLowerCase().includes(w)));
+        let fres = voiceCommandWords.find(vci => vci.words.some(w=>text.toLowerCase().includes(w)));
         if (fres) {
             let command = fres.key;
-            AppGlobal.dispatch({type:"ActExecVoiceCommand",command});
+            AppGlobal.dispatch({type:"ActExecVoiceCommand",command:command});
+            this.isCommandMode = false;
         }
     }
 

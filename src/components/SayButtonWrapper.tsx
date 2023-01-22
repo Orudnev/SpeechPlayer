@@ -11,7 +11,9 @@ export interface ISayItem{
 
 export interface ISayButtonWrapperProps{
     onBeforeSay?:(itemIndex:number)=>boolean;
+    onAllItemsSaid?:()=>void;
     sayItemQueue:ISayItem[];
+
 }
 
 export const SayButtonWrapper: FunctionComponent<ISayButtonWrapperProps> = (props) => {
@@ -47,8 +49,13 @@ export const SayButtonWrapper: FunctionComponent<ISayButtonWrapperProps> = (prop
                 onEnd={() => { 
                     if(currItemIndex+1<props.sayItemQueue.length){
                         setCurrItemIndex(currItemIndex+1);
+                    } else {
+                        if(props.onAllItemsSaid){
+                            props.onAllItemsSaid();
+                        }
+                        console.log("say completed");
                     }
-                    console.log("say completed");
+                    
                 }}
             />        
         </div>

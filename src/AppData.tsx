@@ -3,7 +3,23 @@ import JSZip from 'jszip';
 import { waitWhile } from './components/AsyncHelper';
 import { AppGlobal } from './App';
 import {SRCommand} from './components/SRecognizer';
-import { VoiceCommand } from './components/CompareResult';
+import { VoiceCommand } from './components/SRResultAnalyzer';
+
+
+
+interface IResultItem{
+    itemIndex:number;
+    repeatCount:number;
+    lastTime:Number;
+}
+
+
+interface IResultRecord{
+    arc:string;
+    json:string;
+    itemCount:number;
+    items:IResultItem[];
+}
 
 export enum RoutePath{
     root = "/",
@@ -61,6 +77,7 @@ export interface IActSetDataSourceStart{
 
 export interface IActSetDataSourceComplete{
     type:"ActSetDataSourceComplete";
+    zipFile:File;
     jsonFileBodyStr:string;
 }
 
@@ -74,6 +91,12 @@ export interface IActSelectItem{
     newIndex:number;
 }
 
+export interface IActSetLastRecognizedText{
+    type:"ActSetLastRecognizedText";
+    text:string;
+}
+
+
 export interface IActExecSRCommand{
     type:"ActExecSRCommand";
     command:SRCommand;
@@ -86,6 +109,7 @@ export interface IActExecVoiceCommand{
 
 
 
+
 export type DispatchFunc = (action:AppAction)=>void;
 
 export type AppAction = 
@@ -93,6 +117,7 @@ export type AppAction =
     |   IActSetDataSourceComplete
     |   IActSetAppStatus
     |   IActSelectItem
+    |   IActSetLastRecognizedText
     |   IActExecSRCommand
     |   IActExecVoiceCommand;
 
@@ -105,8 +130,8 @@ export interface IAppReducerstate{
     SRecognizeCmd:SRCommand;
     itemsRaw:any[];
     selItemIndex:number;
+    lastRecognizedText:string;
     voiceCommand:VoiceCommand;
-
 }
 
 export const appInitState:IAppReducerstate = {
@@ -115,20 +140,22 @@ export const appInitState:IAppReducerstate = {
     SelectedZipFile:undefined,
     SelectedJsonFileName:"",
     MP3url:"",
-    SRecognizeCmd:SRCommand.Stop,
+    SRecognizeCmd:SRCommand.StopListen,
     itemsRaw:[],
     selItemIndex:-1,
+    lastRecognizedText:"",
     voiceCommand:VoiceCommand.NoCommand
 };
 
 export function appReducer(state:IAppReducerstate,action:AppAction){
+    console.log(action.type);
     let newState = {...state};
     switch(action.type){
         case 'ActSetDataSourceStart':
-            //ActAsyncReadZipFile(action);
             newState.AppStatus = AppStatusEnum.SetDataSourceStart;
             return newState;
         case 'ActSetDataSourceComplete':
+            newState.SelectedZipFile = action.zipFile;
             newState.CurrentRoutePath = RoutePath.speech;
             newState.AppStatus = AppStatusEnum.DlgPaused;        
             processJsonFile(action.jsonFileBodyStr,newState);
@@ -139,8 +166,12 @@ export function appReducer(state:IAppReducerstate,action:AppAction){
         case 'ActSetAppStatus':
             newState.AppStatus = action.newStatus;
             return newState;
+        case 'ActSetLastRecognizedText':
+            newState.lastRecognizedText = action.text;
+            return newState;
         case 'ActSelectItem':
             newState.selItemIndex = action.newIndex;
+            newState.lastRecognizedText = "";
             return newState;
         case 'ActExecSRCommand':
             newState.SRecognizeCmd = action.command;
@@ -152,7 +183,22 @@ export function appReducer(state:IAppReducerstate,action:AppAction){
     return state;
 }
 
+
+enum LstorageKey {
+    config = "config",
+    results = "results"
+}
+
+interface IDlgItemWithResult{
+    item:IDialogItem;
+    result?:IResultItem;
+    originalIndex:number;
+}
+
 class AppDataHelperClass{
+    getDlgItems():IDialogItem[]{
+        return AppGlobal.state.itemsRaw as IDialogItem[];
+    }
     getSelectedDlgItem():IDialogItem|undefined{
         if(AppGlobal.state.selItemIndex == -1){
             return undefined;
@@ -160,12 +206,80 @@ class AppDataHelperClass{
         return  AppGlobal.state.itemsRaw[AppGlobal.state.selItemIndex] as IDialogItem;
     }
     getNextDlgItemIndex():number{
-        return AppGlobal.state.selItemIndex+1;
-    }
+        this.saveDlgItemResult();
+        let nextItem = this.getOldestDlgItem();
+        
+        return nextItem.originalIndex;
+    }    
     isDlgStarted():boolean{
         let st = AppGlobal.state;
         let result = (st.AppStatus.includes("Dlg") && st.AppStatus != AppStatusEnum.DlgPaused);
         return result;
+    }
+    getOldestDlgItem(){
+        //find item that whose repeat count is less or access time is oldest
+        let items = this.getDlgItemsWithResult();
+        let minItem = items.reduce((accumItm,currItm)=>{
+            if(!accumItm.result && !currItm.result) return accumItm;
+            if(!accumItm.result && currItm.result) return accumItm;
+            if(accumItm.result && !currItm.result) return currItm;
+            if(accumItm.result && currItm.result){
+                if(currItm.result.repeatCount<accumItm.result.repeatCount) return currItm;
+                if(currItm.result.repeatCount == accumItm.result.repeatCount){
+                    return (currItm.result.lastTime<accumItm.result.lastTime?currItm:accumItm);
+                }
+                if(currItm.result.repeatCount<accumItm.result.repeatCount) return accumItm;
+            } 
+            return accumItm
+        });
+        return minItem;
+    }
+    getDlgItemsWithResult(){
+        let resultsJsonStr = localStorage.getItem(LstorageKey.results); 
+        let result:IResultRecord[] = []; 
+        if (resultsJsonStr) {
+            result = JSON.parse(resultsJsonStr) as IResultRecord[];
+        }   
+        let selFileResult = result.find(itm=>itm.json == AppGlobal.state.SelectedJsonFileName);
+        let itemsWithResult:IDlgItemWithResult[] = this.getDlgItems().map((itm,index)=>{
+            let itmdlg = itm as IDialogItem;
+            let resultItm:IResultItem|undefined = undefined;
+            if(selFileResult){
+                resultItm = selFileResult.items.find(itm=>itm.itemIndex == index);
+            } 
+            let newDlgItmWithResult:IDlgItemWithResult = {item:itmdlg,result:resultItm,originalIndex:index};
+            return newDlgItmWithResult;
+        });
+        return itemsWithResult;
+    }
+    saveDlgItemResult(increaseRepeatCount=false){
+        let inc = (increaseRepeatCount?1:0);
+        let resultsJsonStr = localStorage.getItem(LstorageKey.results); 
+        let result:IResultRecord[] = []; 
+        if (resultsJsonStr) {
+            result = JSON.parse(resultsJsonStr) as IResultRecord[];
+        }
+        let st = AppGlobal.state;
+        let zipFileName = AppGlobal.state.SelectedZipFile!.name;
+        let jsonFileName = AppGlobal.state.SelectedJsonFileName;
+        let selItemIndex = AppGlobal.state.selItemIndex;
+        let newResult = result.filter(rec=>rec.arc !=zipFileName  && rec.json != jsonFileName);
+        let oldRec = result.find(rec=>rec.arc == zipFileName && rec.json == jsonFileName);
+        let newItems:IResultItem[] = [];
+        let oldRepeatCount = 0;
+        if(oldRec){
+            newItems = oldRec.items.filter(itm=>itm.itemIndex != selItemIndex);
+            let oldItem = oldRec.items.find(itm=>itm.itemIndex == selItemIndex);
+            if(oldItem){
+                oldRepeatCount = oldItem.repeatCount;
+            }
+        } 
+        let newItem:IResultItem = {itemIndex:selItemIndex,repeatCount:oldRepeatCount+inc,lastTime:new Date().getTime()};
+        newItems.push(newItem);
+        let newRec:IResultRecord = {arc:zipFileName,json:jsonFileName,itemCount:AppGlobal.state.itemsRaw.length,items:newItems};
+        newResult.push(newRec);
+        let jsonStrToSave = JSON.stringify(newResult);
+        localStorage.setItem(LstorageKey.results, jsonStrToSave);        
     }
 }
 
@@ -215,7 +329,7 @@ export async function ActAsyncReadZipFile(dispatch:DispatchFunc,zipFile:File){
         if (jsonFileName) {
             zip.files[jsonFileName].async('blob').then(async (res: any) => {
                 let jsonStr = await ConvertBinToStr.readAsText(res);
-                dispatch({type:'ActSetDataSourceComplete',jsonFileBodyStr:jsonStr});
+                dispatch({type:'ActSetDataSourceComplete',jsonFileBodyStr:jsonStr,zipFile:zipFile});
                 // let incomingJson = JSON.parse(jsonStr);
                 // let newPath = getRoutePath(incomingJson.items[0]);
                 // newState.CurrentRoutePath = newPath;

@@ -12,6 +12,8 @@ import {SelectDataSource} from "./components/SelectDataSource";
 import { RoutePath } from './AppData';
 import { DlgPlayer } from './components/DlgPlayer';
 import SRecognizer from './components/SRecognizer';
+import {SRResultTextAnalyzer} from './components/SRResultAnalyzer';
+
 import {SPlayer} from "./components/SPlayer";
 import test from './test';
 
@@ -34,6 +36,18 @@ function App() {
         <Route path={RoutePath.speech} element={<div>play speech</div>}/>
         <Route path={RoutePath.dialog} element={<DlgPlayer appState={state} />} /> 
       </Routes>
+      <SRecognizer command={state.SRecognizeCmd} onChange={(rtext:string)=>{
+            if(rtext){
+                setTimeout(()=>{
+                  //dispatch({type:"ActSetLastRecognizedText",text:rtext});
+                  SRResultTextAnalyzer.AddNewText(rtext);
+                },0);
+                 
+                //
+            }                    
+            console.log(rtext); 
+        }} />
+
     </div> 
     );
   }

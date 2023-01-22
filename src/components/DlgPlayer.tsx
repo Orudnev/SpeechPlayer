@@ -1,66 +1,66 @@
 import React, { FunctionComponent, useState, useEffect } from 'react';
 import { AppGlobal } from '../App';
-import { AppStatusEnum, IAppReducerstate,appDataHelper, langEnum } from '../AppData';
-import { VoiceCommand } from './CompareResult';
+import { AppStatusEnum, IAppReducerstate, appDataHelper, langEnum,IDialogItem } from '../AppData';
 import { SayButtonWrapper } from './SayButtonWrapper';
 import SRecognizer, { SRCommand } from './SRecognizer';
-import {SRResultTextAnalyzer} from './SRResultAnalyzer';
+import { SRResultTextAnalyzer,VoiceCommand } from './SRResultAnalyzer';
 
 interface IDlgPlayerProps {
     appState: IAppReducerstate;
 }
 
 export const DlgPlayer: FunctionComponent<IDlgPlayerProps> = (props) => {
-    useEffect(() => { AppGlobal.dispatch({ type: 'ActSetAppStatus', newStatus: AppStatusEnum.DlgPaused }) }, []);
+    useEffect(() => {
+        if (props.appState.voiceCommand == VoiceCommand.GoNextItem) {
+            let nextIndex = appDataHelper.getNextDlgItemIndex();
+            AppGlobal.dispatch({ type: "ActExecSRCommand", command: SRCommand.StopListen });
+            AppGlobal.dispatch({ type: "ActExecVoiceCommand", command: VoiceCommand.NoCommand });
+            AppGlobal.dispatch({ type: "ActSelectItem", newIndex: nextIndex });
+        } 
+    }, [props.appState.voiceCommand]);
+
+    let selItem = appDataHelper.getSelectedDlgItem();
     const handleBtnStart = () => {
         AppGlobal.dispatch({ type: 'ActSetAppStatus', newStatus: AppStatusEnum.DlgShowItemAndSayQuestion });
-        let nextDlgItem = appDataHelper.getNextDlgItemIndex();        
-        AppGlobal.dispatch({type:'ActSelectItem',newIndex:nextDlgItem});
-        AppGlobal.dispatch({type:'ActExecSRCommand',command:SRCommand.Start});
-    }
+        let nextDlgItemIndex = appDataHelper.getNextDlgItemIndex();
+        let nextDlgItem = AppGlobal.state.itemsRaw[nextDlgItemIndex] as IDialogItem;
+        AppGlobal.dispatch({ type: 'ActSelectItem', newIndex: nextDlgItemIndex });            
+        SRResultTextAnalyzer.SetEtalonText(nextDlgItem.p2.en);
+    };
     const handleBtnPause = () => {
         AppGlobal.dispatch({ type: 'ActSetAppStatus', newStatus: AppStatusEnum.DlgPaused });
-    }
-    
-    let selItem = appDataHelper.getSelectedDlgItem();
-    let dlgItemContentJsx = <div/>
-    if(selItem && appDataHelper.isDlgStarted()){
-        SRResultTextAnalyzer.SetEtalonText(selItem.p2.en);
-        let questionTextJsx = 
-            <div>
-                <h3>Question:</h3>
-                <div>{selItem.p1.en}</div>
-            </div>;
-        let answerTextJsx = 
-            <div>
-                <h3>Answer:</h3>
-                <div>{selItem.p2.en}</div>
-            </div>;
-        
-        let popupCommand = <div/>;
-        if(props.appState.voiceCommand != VoiceCommand.NoCommand){
-            popupCommand =  
-            <div className="popup-container">
-                <div className="popup-content">Command</div>
-            </div>;                
+    };
+    const handleBeforeSay = (sayTextItemIndex:number) => {
+        if (sayTextItemIndex == 0) {
+            AppGlobal.dispatch({ type: 'ActSetAppStatus', newStatus: AppStatusEnum.DlgShowItemAndSayQuestion });
         }
+        if (sayTextItemIndex == 1) {
+            AppGlobal.dispatch({ type: 'ActSetAppStatus', newStatus: AppStatusEnum.DlgSayAnswer });
+        }
+        return true;
+    };
+    const handleAllSayItemsSaid = () => {
+        AppGlobal.dispatch({ type: 'ActExecSRCommand', command: SRCommand.StartListen });
+    };
 
-        dlgItemContentJsx = 
-            <div id="dlgItemContent" >
-                {questionTextJsx}
-                {answerTextJsx}
-                {popupCommand}
-                <SayButtonWrapper sayItemQueue={[{sayText:selItem.p1.en},{sayText:selItem.p2.en}]} 
-                    onBeforeSay={(itemIndex)=>{
-                        return true;
-                    }} />
-            </div>; 
-    } 
+
+    let questionTextJsxShow = false;
+    let answerTextJsxShow = false;
+    let popupCommandJsxShow = false;
+    let sayButtonWrapperJsxShow = false;
+    if (selItem && appDataHelper.isDlgStarted()) {
+        questionTextJsxShow = true;
+        answerTextJsxShow = true;
+        popupCommandJsxShow = (props.appState.voiceCommand != VoiceCommand.NoCommand);
+        sayButtonWrapperJsxShow = props.appState.SRecognizeCmd != SRCommand.StartListen;
+    }
 
     let isPausedStatus = (props.appState.AppStatus == AppStatusEnum.DlgPaused);
     let moveNextItemClassStr = (true ? "toolbar-button toolbar-button__text toolbar-button__enabled" : "toolbar-button toolbar-button__text toolbar-button__disabled");
     let playBtnClassStr = (isPausedStatus ? "toolbar-button" : "toolbar-button toolbar-button__disabled");
     let pauseBtnClassStr = (!isPausedStatus ? "toolbar-button" : "toolbar-button toolbar-button__disabled");
+    let microponeBtnClassStr = (props.appState.SRecognizeCmd == SRCommand.StartListen?"img-microphoneOn":"img-microphoneOff");
+    
     return (
         <div className="splayer-page">
             <div className="splayer-page__toolbar">
@@ -79,16 +79,30 @@ export const DlgPlayer: FunctionComponent<IDlgPlayerProps> = (props) => {
                 }}>
                     <div className="img-config" />
                 </button>
-                <SRecognizer command={props.appState.SRecognizeCmd} onChange={(text:string)=>{
-                    if(text){
-                        SRResultTextAnalyzer.AddNewText(text);
-                    }
-                    
-                    //AppGlobal.dispatch({type:"ActExecSRCommand",command:SRCommand.Reset});
-                    console.log(text); 
-                }} />
+                <button className={"toolbar-button"} onClick={() => {
+
+                }}>
+                    <div className={microponeBtnClassStr} />
+                </button>
             </div>
-            {dlgItemContentJsx}
+            {questionTextJsxShow &&
+                <div>
+                    <h3>Question:</h3>
+                    <div>{selItem!.p1.en}</div>
+                </div>}
+            {answerTextJsxShow &&
+                <div>
+                    <h3>Answer:</h3>
+                    <div>{selItem!.p2.en}</div>
+                </div>}
+            {popupCommandJsxShow &&
+                <div className="popup-container">
+                    <div className="popup-content">Voice command</div>
+                </div>}
+            {sayButtonWrapperJsxShow &&
+                <SayButtonWrapper sayItemQueue={[{ sayText: selItem!.p1.en }, { sayText: selItem!.p2.en }]}
+                    onBeforeSay={handleBeforeSay} onAllItemsSaid={handleAllSayItemsSaid} />}
+
         </div>
     );
-}
+} 

@@ -145,11 +145,13 @@
 .popup-content{
     margin-top: 300px;
     margin-left: 35%;
+    padding-top: 50px;
+    padding-bottom: 50px;
     border: solid 1px lightgrey;
     border-radius: 100px;
     width: 200px;
     text-align: center;
-    line-height: 200px;
+    line-height: 50px;
     font-size: 30px;
     font-weight: 600;
     color:white;
