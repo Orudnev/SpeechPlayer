@@ -4,6 +4,7 @@ import { AppStatusEnum, IAppReducerstate, appDataHelper, langEnum,IDialogItem } 
 import { SayButtonWrapper } from './SayButtonWrapper';
 import SRecognizer, { SRCommand } from './SRecognizer';
 import { SRResultTextAnalyzer,VoiceCommand } from './SRResultAnalyzer';
+import {ColorWords} from './ColorWords';
 
 interface IDlgPlayerProps {
     appState: IAppReducerstate;
@@ -93,7 +94,7 @@ export const DlgPlayer: FunctionComponent<IDlgPlayerProps> = (props) => {
             {answerTextJsxShow &&
                 <div>
                     <h3>Answer:</h3>
-                    <div>{selItem!.p2.en}</div>
+                    <ColorWords text={selItem!.p2.en} recResult={props.appState.lastRecognizedResult} />
                 </div>}
             {popupCommandJsxShow &&
                 <div className="popup-container">
@@ -103,6 +104,6 @@ export const DlgPlayer: FunctionComponent<IDlgPlayerProps> = (props) => {
                 <SayButtonWrapper sayItemQueue={[{ sayText: selItem!.p1.en }, { sayText: selItem!.p2.en }]}
                     onBeforeSay={handleBeforeSay} onAllItemsSaid={handleAllSayItemsSaid} />}
 
-        </div>
+        </div> 
     );
 } 

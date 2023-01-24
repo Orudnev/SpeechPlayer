@@ -4,7 +4,7 @@ import { waitWhile } from './components/AsyncHelper';
 import { AppGlobal } from './App';
 import {SRCommand} from './components/SRecognizer';
 import { VoiceCommand } from './components/SRResultAnalyzer';
-
+import {SRResultWord} from './components/SRResultAnalyzer';
 
 
 interface IResultItem{
@@ -94,6 +94,7 @@ export interface IActSelectItem{
 export interface IActSetLastRecognizedText{
     type:"ActSetLastRecognizedText";
     text:string;
+    recognizedResult:SRResultWord[];
 }
 
 
@@ -107,7 +108,9 @@ export interface IActExecVoiceCommand{
     command:VoiceCommand;
 }
 
-
+export interface IActForceRender{
+    type:"ActForceRender";
+}
 
 
 export type DispatchFunc = (action:AppAction)=>void;
@@ -119,9 +122,11 @@ export type AppAction =
     |   IActSelectItem
     |   IActSetLastRecognizedText
     |   IActExecSRCommand
-    |   IActExecVoiceCommand;
+    |   IActExecVoiceCommand
+    |   IActForceRender;
 
 export interface IAppReducerstate{
+    FRender:boolean;
     AppStatus:AppStatusEnum;
     CurrentRoutePath:string;
     SelectedZipFile:File|undefined;
@@ -131,10 +136,12 @@ export interface IAppReducerstate{
     itemsRaw:any[];
     selItemIndex:number;
     lastRecognizedText:string;
+    lastRecognizedResult:SRResultWord[];
     voiceCommand:VoiceCommand;
 }
 
 export const appInitState:IAppReducerstate = {
+    FRender:false,
     AppStatus:AppStatusEnum.none,
     CurrentRoutePath:RoutePath.root,
     SelectedZipFile:undefined,
@@ -144,6 +151,7 @@ export const appInitState:IAppReducerstate = {
     itemsRaw:[],
     selItemIndex:-1,
     lastRecognizedText:"",
+    lastRecognizedResult:[],
     voiceCommand:VoiceCommand.NoCommand
 };
 
@@ -168,16 +176,21 @@ export function appReducer(state:IAppReducerstate,action:AppAction){
             return newState;
         case 'ActSetLastRecognizedText':
             newState.lastRecognizedText = action.text;
+            newState.lastRecognizedResult = action.recognizedResult;
             return newState;
         case 'ActSelectItem':
             newState.selItemIndex = action.newIndex;
             newState.lastRecognizedText = "";
+            newState.lastRecognizedResult = [];
             return newState;
         case 'ActExecSRCommand':
             newState.SRecognizeCmd = action.command;
             return newState;
         case 'ActExecVoiceCommand':
             newState.voiceCommand = action.command;
+            return newState;
+        case 'ActForceRender':
+            newState.FRender = !newState.FRender;
             return newState;
     }
     return state;
@@ -194,6 +207,54 @@ interface IDlgItemWithResult{
     result?:IResultItem;
     originalIndex:number;
 }
+
+interface IAppConfigSettings{
+    dlgAnswerTextHidden:boolean;
+}
+
+const defaultConfigSettings:IAppConfigSettings = {
+    dlgAnswerTextHidden: true,
+}
+
+class ConfigSettingsClass{
+    config:IAppConfigSettings;
+    constructor(){
+        this.config = this.readConfigSettings();
+    }
+    readConfigSettings():IAppConfigSettings{
+        let jsonStr = localStorage.getItem(LstorageKey.config);
+        if (jsonStr) {
+            try{
+                let config = JSON.parse(jsonStr) as IAppConfigSettings;
+                if (!config){
+                    return defaultConfigSettings;
+                }
+                return config;
+            } 
+            catch {
+                return defaultConfigSettings;
+            }
+        } 
+        return defaultConfigSettings;
+    }
+
+    save(){
+        let newSettingsStr = JSON.stringify(this.config);
+        localStorage.setItem(LstorageKey.config,newSettingsStr);
+        AppGlobal.dispatch({type:"ActForceRender"});
+    }
+
+    dlgAnswerTextHidden(value:boolean|undefined = undefined){
+        if(value === undefined){
+            return this.config.dlgAnswerTextHidden;
+        }
+        this.config.dlgAnswerTextHidden = value;
+        this.save();
+    }
+}
+
+export const ConfigSettings = new ConfigSettingsClass();
+
 
 class AppDataHelperClass{
     getDlgItems():IDialogItem[]{

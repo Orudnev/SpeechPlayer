@@ -16,11 +16,21 @@ import {SRResultTextAnalyzer} from './components/SRResultAnalyzer';
 
 import {SPlayer} from "./components/SPlayer";
 import test from './test';
+import {ColorWords,IColorWordsProps} from "./components/ColorWords";
 
 export const AppGlobal = {
   navigate:(url:string)=>{},
   dispatch:(action:AppAction)=>{},
   state:appInitState
+}
+
+const testCWprops:IColorWordsProps = {
+  text:"mama myla, ramu ramu, myla mama. gyr gyg blablabla. Chu-Chu-Chy stuchat kopyta.",
+  selectedSentenceIndex:2, 
+  recResult:[
+    {etalonCount:2,resultCount:1,text:"myla"},
+    {etalonCount:2,resultCount:2,text:"mama"},
+]
 }
 
 

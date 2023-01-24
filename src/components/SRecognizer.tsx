@@ -22,8 +22,9 @@ export interface ISRecognizerProps{
 }
 
 class stubTalker{
-    words=["without","parsing","script","fetched","attributes","blocks","go go","byrbyrbyr","next"];
+    words=["tag","with","script all they are","fetched","for","attributes","blocks","content","type","the","variable","array", "go go","next"];
     currIndex = 0;
+    accumStr = "";
     handler = (w:string)=>{};
     constructor(handlerFunc:any){
         this.handler = handlerFunc;
@@ -32,10 +33,12 @@ class stubTalker{
     async start(){
         setTimeout(()=>{
             let wrd=this.words[this.currIndex];
-            this.handler(wrd); 
+            this.accumStr += " "+wrd;
+            this.handler(this.accumStr); 
             if(this.currIndex<this.words.length-1){
                 this.currIndex++;
             } else {
+                this.accumStr = "";
                 this.currIndex = 0;
             }
             this.start();

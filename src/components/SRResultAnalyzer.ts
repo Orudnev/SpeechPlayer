@@ -22,7 +22,7 @@ export enum VoiceCommand {
     GoNextItemSet = "GoNextItemSet"
 }
 
-interface SRResultWord {
+export interface SRResultWord {
     text: string;
     etalonCount: number;
     resultCount: number;
@@ -44,8 +44,7 @@ const voiceCommandWords: IVoiceCommandItem[] = [
 
 class SRResultTextAnalyzerClass {
     etalonText = "";
-    allWords: SRResultWord[] = [];
-    etalontWords: SRResultWord[] = [];
+    etalonWords: SRResultWord[] = [];
     isCommandMode = false;
     startCommandWords = ["google", "coco", "go go", "oh"];
 
@@ -53,7 +52,7 @@ class SRResultTextAnalyzerClass {
         this.etalonText = text;
         let words = filterUnnecessarySymbols(text).split(" ");
         words.forEach(wrd => {
-            let rItem = this.etalontWords.find(rw => rw.text == wrd.toLowerCase());
+            let rItem = this.etalonWords.find(rw => rw.text == wrd.toLowerCase());
             if (rItem) {
                 rItem.etalonCount++;
             } else {
@@ -62,7 +61,7 @@ class SRResultTextAnalyzerClass {
                     etalonCount: 1,
                     resultCount: 0
                 }
-                this.etalontWords.push(newItem);
+                this.etalonWords.push(newItem);
             }
         });
     }
@@ -112,26 +111,14 @@ class SRResultTextAnalyzerClass {
             }
         }
 
-        let words = diffText.split(" ");
-        words.forEach(wrd => {
-            let rItem = this.etalontWords.find(rw => rw.text == wrd.toLowerCase());
+        let allWords = recognizedText.split(" ");
+        allWords.forEach(wrd => {
+            let rItem = this.etalonWords.find(rw => rw.text.toLowerCase() == wrd.toLowerCase());
             if (rItem) {
                 rItem.resultCount++;
             }
-            let awItem = this.allWords.find(wi => wi.text == wrd.toLowerCase());
-            if (awItem) {
-                awItem.resultCount++;
-            }
-            else {
-                let newItem: SRResultWord = {
-                    text: wrd.toLowerCase(),
-                    etalonCount: 0,
-                    resultCount: 1
-                }
-                this.allWords.push(newItem);
-            }
         });
-        AppGlobal.dispatch({type:"ActSetLastRecognizedText",text:recognizedText})
+        AppGlobal.dispatch({type:"ActSetLastRecognizedText",text:recognizedText,recognizedResult:this.etalonWords})
     }
 
     findStartCommandWord(text: string) {
