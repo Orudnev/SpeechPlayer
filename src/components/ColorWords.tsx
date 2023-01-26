@@ -1,21 +1,30 @@
 import React, { FunctionComponent, ReactHTMLElement} from "react"; 
-import { idText } from "typescript";
+import { idText, isPropertySignature } from "typescript";
 import {SRResultWord} from "./SRResultAnalyzer";
 import {ConfigSettings} from "../AppData";
+import { AppGlobal } from "../App";
 
 export interface IColorWordsProps{
-    selectedSentenceIndex?:number;
+    selectedSentenceIndex:number;
     text:string;
     recResult?:SRResultWord[];
 }
 
-export const NumUpDown = ()=>{
+export const NumUpDown:FunctionComponent<IColorWordsProps> = (props)=>{
     return (
         <div className="num-updown">
             <button className={"num-updown_btn"} 
                 onClick={()=>{ 
+                    AppGlobal.dispatch({type:"ActSetSelectedSentenceIndex",index:AppGlobal.state.selectedSentenceIndex-1});
             }} >
-                <div className={""} />
+                <div className={"img-left"} />
+            </button> 
+            <div className={"num-updown_value"}>{props.selectedSentenceIndex}</div>
+            <button className={"num-updown_btn"} 
+                onClick={()=>{ 
+                    AppGlobal.dispatch({type:"ActSetSelectedSentenceIndex",index:AppGlobal.state.selectedSentenceIndex+1});
+            }} >
+                <div className={"img-right"} />
             </button>        
         </div>
     );
@@ -29,10 +38,11 @@ export const ColorWords:FunctionComponent<IColorWordsProps> = (props)=>{
             JSON.parse(JSON.stringify(props.recResult)) as SRResultWord[]
             : [] );
     const  wordsJsx:JSX.Element[] = [];    
-    let currSentIndex = 0;
+    
+    let currSentIndex = 1;
     allWords.forEach((w,index)=>{
         let classStr = "";
-        if(props.selectedSentenceIndex!=undefined && props.selectedSentenceIndex === currSentIndex){
+        if(props.selectedSentenceIndex!=undefined && props.selectedSentenceIndex>0 && props.selectedSentenceIndex === currSentIndex ){
             classStr = "select-sentence-word";
         }
         let wordResult = resultWords.find(wr=>w.toLowerCase().includes(wr.text.toLowerCase()) && wr.resultCount>0);
@@ -74,7 +84,7 @@ export const ColorWords:FunctionComponent<IColorWordsProps> = (props)=>{
                         ConfigSettings.dlgRepeat(!ConfigSettings.dlgRepeat())}} >
                     <div className={btnRepeatImgClassStr} />
                 </button>
-                <NumUpDown />
+                <NumUpDown {...props}/>
             </div>
             {wordsJsx}
         </div>

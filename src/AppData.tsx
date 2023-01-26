@@ -112,6 +112,11 @@ export interface IActForceRender{
     type:"ActForceRender";
 }
 
+export interface IActSetSelectedSentenceIndex{
+    type:"ActSetSelectedSentenceIndex";
+    index:number;
+}
+
 
 export type DispatchFunc = (action:AppAction)=>void;
 
@@ -123,7 +128,8 @@ export type AppAction =
     |   IActSetLastRecognizedText
     |   IActExecSRCommand
     |   IActExecVoiceCommand
-    |   IActForceRender;
+    |   IActForceRender
+    |   IActSetSelectedSentenceIndex;
 
 export interface IAppReducerstate{
     FRender:boolean;
@@ -131,10 +137,11 @@ export interface IAppReducerstate{
     CurrentRoutePath:string;
     SelectedZipFile:File|undefined;
     SelectedJsonFileName:string;
+    selItemIndex:number;
+    selectedSentenceIndex:number;
     MP3url:string;
     SRecognizeCmd:SRCommand;
     itemsRaw:any[];
-    selItemIndex:number;
     lastRecognizedText:string;
     lastRecognizedResult:SRResultWord[];
     voiceCommand:VoiceCommand;
@@ -146,10 +153,11 @@ export const appInitState:IAppReducerstate = {
     CurrentRoutePath:RoutePath.root,
     SelectedZipFile:undefined,
     SelectedJsonFileName:"",
+    selItemIndex:-1,
+    selectedSentenceIndex:0,
     MP3url:"",
     SRecognizeCmd:SRCommand.StopListen,
     itemsRaw:[],
-    selItemIndex:-1,
     lastRecognizedText:"",
     lastRecognizedResult:[],
     voiceCommand:VoiceCommand.NoCommand
@@ -191,6 +199,9 @@ export function appReducer(state:IAppReducerstate,action:AppAction){
             return newState;
         case 'ActForceRender':
             newState.FRender = !newState.FRender;
+            return newState;
+        case 'ActSetSelectedSentenceIndex':
+            newState.selectedSentenceIndex = action.index;
             return newState;
     }
     return state;

@@ -98,7 +98,7 @@ export const DlgPlayer: FunctionComponent<IDlgPlayerProps> = (props) => {
             {answerTextJsxShow &&
                 <div>
                     <h3>Answer:</h3>
-                    <ColorWords text={selItem!.p2.en} recResult={props.appState.lastRecognizedResult} />
+                    <ColorWords text={selItem!.p2.en} recResult={props.appState.lastRecognizedResult} selectedSentenceIndex={props.appState.selectedSentenceIndex} />
                 </div>}
             {popupCommandJsxShow &&
                 <div className="popup-container">
