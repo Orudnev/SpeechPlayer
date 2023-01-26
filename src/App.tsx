@@ -52,8 +52,6 @@ function App() {
                   //dispatch({type:"ActSetLastRecognizedText",text:rtext});
                   SRResultTextAnalyzer.AddNewText(rtext);
                 },0);
-                 
-                //
             }                    
             console.log(rtext); 
         }} />

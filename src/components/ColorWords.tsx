@@ -9,6 +9,18 @@ export interface IColorWordsProps{
     recResult?:SRResultWord[];
 }
 
+export const NumUpDown = ()=>{
+    return (
+        <div className="num-updown">
+            <button className={"num-updown_btn"} 
+                onClick={()=>{ 
+            }} >
+                <div className={""} />
+            </button>        
+        </div>
+    );
+}
+
 
 export const ColorWords:FunctionComponent<IColorWordsProps> = (props)=>{
 
@@ -42,14 +54,27 @@ export const ColorWords:FunctionComponent<IColorWordsProps> = (props)=>{
         }
     }); 
  
-    const btnHideAnswerTextStr = "toolbar-button" + (ConfigSettings.config.dlgAnswerTextHidden?" toolbar-button__enabled":" toolbar-button__disabled")
+    const btnSayAnswerImgClassStr = (ConfigSettings.config.dlgSayAnswer?"img-sound":"img-no-sound");
+    const btnVisibleImgClassStr = (ConfigSettings.config.dlgAnswerTextHidden?"img-invisible":"img-visible");
+    const btnRepeatImgClassStr = (ConfigSettings.config.dlgRepeat?"img-refresh":"img-refresh-on");
     return (
         <div >
             <div className="splayer-page__toolbar">
-                <button className={btnHideAnswerTextStr} 
-                    onClick={()=>ConfigSettings.dlgAnswerTextHidden(!ConfigSettings.dlgAnswerTextHidden())} >
-                    <div className={"img-invisible"} />
+                <button className={"toolbar-button"} 
+                    onClick={()=>ConfigSettings.dlgSayAnswer(!ConfigSettings.dlgSayAnswer())} >
+                    <div className={btnSayAnswerImgClassStr} />
                 </button>
+                <button className={"toolbar-button"} 
+                    onClick={()=>ConfigSettings.dlgAnswerTextHidden(!ConfigSettings.dlgAnswerTextHidden())} >
+                    <div className={btnVisibleImgClassStr} />
+                </button>
+                <button className={"toolbar-button"} 
+                    onClick={()=>{
+                        let cs = ConfigSettings.config;
+                        ConfigSettings.dlgRepeat(!ConfigSettings.dlgRepeat())}} >
+                    <div className={btnRepeatImgClassStr} />
+                </button>
+                <NumUpDown />
             </div>
             {wordsJsx}
         </div>

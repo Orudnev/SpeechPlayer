@@ -1,6 +1,6 @@
 import React, { FunctionComponent, useState, useEffect } from 'react';
 import { AppGlobal } from '../App';
-import { AppStatusEnum, IAppReducerstate, appDataHelper, langEnum,IDialogItem } from '../AppData';
+import { AppStatusEnum, IAppReducerstate, appDataHelper, langEnum,IDialogItem,ConfigSettings } from '../AppData';
 import { SayButtonWrapper } from './SayButtonWrapper';
 import SRecognizer, { SRCommand } from './SRecognizer';
 import { SRResultTextAnalyzer,VoiceCommand } from './SRResultAnalyzer';
@@ -37,6 +37,10 @@ export const DlgPlayer: FunctionComponent<IDlgPlayerProps> = (props) => {
         }
         if (sayTextItemIndex == 1) {
             AppGlobal.dispatch({ type: 'ActSetAppStatus', newStatus: AppStatusEnum.DlgSayAnswer });
+            if(!ConfigSettings.dlgSayAnswer()){
+                handleAllSayItemsSaid();
+                return false;
+            }
         }
         return true;
     };

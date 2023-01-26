@@ -210,10 +210,14 @@ interface IDlgItemWithResult{
 
 interface IAppConfigSettings{
     dlgAnswerTextHidden:boolean;
+    dlgSayAnswer:boolean;
+    dlgRepeat:boolean;
 }
 
 const defaultConfigSettings:IAppConfigSettings = {
     dlgAnswerTextHidden: true,
+    dlgSayAnswer: true,
+    dlgRepeat:false
 }
 
 class ConfigSettingsClass{
@@ -229,7 +233,7 @@ class ConfigSettingsClass{
                 if (!config){
                     return defaultConfigSettings;
                 }
-                return config;
+                return {...defaultConfigSettings,...config};
             } 
             catch {
                 return defaultConfigSettings;
@@ -251,6 +255,22 @@ class ConfigSettingsClass{
         this.config.dlgAnswerTextHidden = value;
         this.save();
     }
+    dlgSayAnswer(value:boolean|undefined = undefined){
+        if(value === undefined){
+            return this.config.dlgSayAnswer;
+        }
+        this.config.dlgSayAnswer = value;
+        this.save();
+    }
+    dlgRepeat(value:boolean|undefined = undefined){
+        if(value === undefined){
+            return this.config.dlgRepeat;
+        }
+        this.config.dlgRepeat = value;
+        this.save();
+    }
+
+
 }
 
 export const ConfigSettings = new ConfigSettingsClass();

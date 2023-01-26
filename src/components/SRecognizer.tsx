@@ -74,8 +74,8 @@ const SRecognizer = (props:ISRecognizerProps) => {
             },0)
         }
         if(!stubTalkerInstance){
-            //stubTalkerInstance = new stubTalker(props.onChange);
-            //stubTalkerInstance.start();
+            stubTalkerInstance = new stubTalker(props.onChange);
+            stubTalkerInstance.start();
         }    
     }
 
