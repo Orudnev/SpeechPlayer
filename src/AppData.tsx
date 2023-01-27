@@ -168,7 +168,6 @@ export const appInitState:IAppReducerstate = {
 };
 
 export function appReducer(state:IAppReducerstate,action:AppAction){
-    console.log(action.type);
     let newState = {...state};
     switch(action.type){
         case 'ActSetDataSourceStart':
@@ -297,6 +296,7 @@ export const ConfigSettings = new ConfigSettingsClass();
 
 
 class AppDataHelperClass{
+    dlgItemsHistoryStack:Number[] = [];
     getDlgItems():IDialogItem[]{
         return AppGlobal.state.itemsRaw as IDialogItem[];
     }
@@ -306,10 +306,20 @@ class AppDataHelperClass{
         }
         return  AppGlobal.state.itemsRaw[AppGlobal.state.selItemIndex] as IDialogItem;
     }
+    getPrevDlgItemIndex():number{
+        let prevItemIndex = this.dlgItemsHistoryStack.pop();
+        if(AppGlobal.state.selItemIndex === prevItemIndex){
+            prevItemIndex = this.dlgItemsHistoryStack.pop();
+        }
+        if(prevItemIndex){
+            return prevItemIndex as number;
+        }
+        return -1;
+    }
     getNextDlgItemIndex():number{
         this.saveDlgItemResult();
         let nextItem = this.getOldestDlgItem();
-        
+        this.dlgItemsHistoryStack.push(nextItem.originalIndex);
         return nextItem.originalIndex;
     }    
     isDlgStarted():boolean{

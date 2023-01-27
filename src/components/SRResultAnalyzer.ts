@@ -50,6 +50,7 @@ class SRResultTextAnalyzerClass {
 
     SetEtalonText(text: string) {
         this.etalonText = text;
+        this.etalonWords = [];
         let words = filterUnnecessarySymbols(text).split(" ");
         words.forEach(wrd => {
             let rItem = this.etalonWords.find(rw => rw.text == wrd.toLowerCase());
@@ -97,7 +98,7 @@ class SRResultTextAnalyzerClass {
         if (!diffText) {
             diffText = recognizedText;
         } 
-        console.log("prevRecText",prevRecognizedText);
+        //console.log("prevRecText",prevRecognizedText);
         console.log("recText",recognizedText);
         console.log("diffText",diffText);
         if (this.isCommandMode) {

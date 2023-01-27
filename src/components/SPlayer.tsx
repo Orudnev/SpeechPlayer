@@ -369,7 +369,6 @@ export class SPlayer extends React.Component<any, ISPlayerState> {
                     SRecognizerCommand: SRCommand.StopListen,
                 });
             let currItem = orderedItems[i].item as IDialogueItem;
-            console.log("currItem:",currItem);
             if (this.state.isStarted ) {
                 await this.playSayButton(langEnum.enUs, currItem.p1.en);
             }
@@ -422,7 +421,6 @@ export class SPlayer extends React.Component<any, ISPlayerState> {
                 break;
             }
             
-            console.log("listen and recognize:",items[i]);
             await this.listenAndRecognizeVoiceAnswer();
             if (this.state.lastRecognitionResult && this.state.lastRecognitionResult.command) {
                 if (this.state.lastRecognitionResult.command == VoiceCommand.ClearListenResultAndListenAgain) {
@@ -459,7 +457,6 @@ export class SPlayer extends React.Component<any, ISPlayerState> {
         let completed = false;
         this.setState(newState, () => { completed = true; });
         await waitWhile(() => !completed, `wait new state applying: ${JSON.stringify(newState)}`);
-        console.log("New state applied");
     }
 
     async playMP3Fragment(startTim: number, endTim: number) {

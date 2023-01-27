@@ -11,7 +11,9 @@ export interface IColorWordsProps{
 }
 
 export interface INupUpDownProps{
-    value:number;
+    value:any;
+    leftBtnDisabled?:boolean;
+    rightBtnDisabled?:boolean;
     onLeftBtnClick:()=>void;
     onRightBtnClick:()=>void;
     //selectedSentenceIndex:number;
@@ -20,14 +22,16 @@ export interface INupUpDownProps{
 
 
 export const NumUpDown:FunctionComponent<INupUpDownProps> = (props)=>{
+    let lbDisabled = (props.leftBtnDisabled ? true : false);
+    let rbDisabled = (props.rightBtnDisabled ? true : false);
     return (
         <div className="num-updown">
-            <button className={"num-updown_btn"} 
+            <button className={"num-updown_btn"} disabled={lbDisabled}
                 onClick={props.onLeftBtnClick} >
                 <div className={"img-left"} />
             </button> 
             <div className={"num-updown_value"}>{props.value}</div>
-            <button className={"num-updown_btn"} 
+            <button className={"num-updown_btn"} disabled={rbDisabled}
                 onClick={props.onRightBtnClick} >
                 <div className={"img-right"} />
             </button>        

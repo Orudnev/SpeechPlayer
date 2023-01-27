@@ -54,7 +54,7 @@ export const SayButtonWrapper: FunctionComponent<ISayButtonWrapperProps> = (prop
                         if(props.onAllItemsSaid){
                             props.onAllItemsSaid();
                         }
-                        console.log("say completed");
+                        //console.log("say completed");
                     }
                 }}
             />        

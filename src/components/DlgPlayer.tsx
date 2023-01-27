@@ -20,13 +20,26 @@ export const DlgPlayer: FunctionComponent<IDlgPlayerProps> = (props) => {
         } 
     }, [props.appState.voiceCommand]);
 
+    const selectNewItem = (newItemIndex:number) =>{
+        AppGlobal.dispatch({ type: "ActExecSRCommand", command: SRCommand.StopListen });
+        AppGlobal.dispatch({ type: "ActExecVoiceCommand", command: VoiceCommand.NoCommand });
+        AppGlobal.dispatch({ type: "ActSelectItem", newIndex: newItemIndex });
+        let newDlgItem = AppGlobal.state.itemsRaw[newItemIndex] as IDialogItem;
+        SRResultTextAnalyzer.SetEtalonText(newDlgItem.p2.en);
+        AppGlobal.dispatch({ type: 'ActSetAppStatus', newStatus: AppStatusEnum.DlgPaused }); 
+        setTimeout(() => {
+            AppGlobal.dispatch({ type: 'ActSetAppStatus', newStatus: AppStatusEnum.DlgStarted });                           
+        }, 0);        
+    }
+
+
     let selItem = appDataHelper.getSelectedDlgItem();
     const handleBtnStartPause = () => {
         if(props.appState.AppStatus === AppStatusEnum.DlgPaused){
             AppGlobal.dispatch({ type: 'ActSetAppStatus', newStatus: AppStatusEnum.DlgStarted });
             let nextDlgItemIndex = appDataHelper.getNextDlgItemIndex();
-            let nextDlgItem = AppGlobal.state.itemsRaw[nextDlgItemIndex] as IDialogItem;
             AppGlobal.dispatch({ type: 'ActSelectItem', newIndex: nextDlgItemIndex });            
+            let nextDlgItem = AppGlobal.state.itemsRaw[nextDlgItemIndex] as IDialogItem;
             SRResultTextAnalyzer.SetEtalonText(nextDlgItem.p2.en);
         } else {
             AppGlobal.dispatch({ type: 'ActSetAppStatus', newStatus: AppStatusEnum.DlgPaused });
@@ -85,13 +98,26 @@ export const DlgPlayer: FunctionComponent<IDlgPlayerProps> = (props) => {
             sayTextItems.push({sayText:senttxt});
         }
     }    
+    let nudValue:any = props.appState.selItemIndex;
+    let nudLbDisabled = appDataHelper.dlgItemsHistoryStack.length<2;
+    if(nudValue === -1){
+        nudValue = "";
+    }
     return (
         <div className="splayer-page">
             <div className="splayer-page__toolbar">
                 <button className={playBtnClassStr} onClick={handleBtnStartPause} >
                     <div className={"img-play"} />
                 </button>
-                <NumUpDown />
+                <NumUpDown value={nudValue} leftBtnDisabled={nudLbDisabled} onLeftBtnClick={()=>{
+                        let prevIndex = appDataHelper.getPrevDlgItemIndex();
+                        if(prevIndex !== -1){
+                            selectNewItem(prevIndex);
+                        }
+                    }} onRightBtnClick={()=>{
+                        let nextIndex = appDataHelper.getNextDlgItemIndex();
+                        selectNewItem(nextIndex);                        
+                    }} />
                 <button className={"toolbar-button"} onClick={() => {
 
                      }}>
