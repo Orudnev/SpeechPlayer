@@ -10,20 +10,25 @@ export interface IColorWordsProps{
     recResult?:SRResultWord[];
 }
 
-export const NumUpDown:FunctionComponent<IColorWordsProps> = (props)=>{
+export interface INupUpDownProps{
+    value:number;
+    onLeftBtnClick:()=>void;
+    onRightBtnClick:()=>void;
+    //selectedSentenceIndex:number;
+    //text:string;
+}
+
+
+export const NumUpDown:FunctionComponent<INupUpDownProps> = (props)=>{
     return (
         <div className="num-updown">
             <button className={"num-updown_btn"} 
-                onClick={()=>{ 
-                    AppGlobal.dispatch({type:"ActSetSelectedSentenceIndex",index:AppGlobal.state.selectedSentenceIndex-1});
-            }} >
+                onClick={props.onLeftBtnClick} >
                 <div className={"img-left"} />
             </button> 
-            <div className={"num-updown_value"}>{props.selectedSentenceIndex}</div>
+            <div className={"num-updown_value"}>{props.value}</div>
             <button className={"num-updown_btn"} 
-                onClick={()=>{ 
-                    AppGlobal.dispatch({type:"ActSetSelectedSentenceIndex",index:AppGlobal.state.selectedSentenceIndex+1});
-            }} >
+                onClick={props.onRightBtnClick} >
                 <div className={"img-right"} />
             </button>        
         </div>
@@ -66,7 +71,10 @@ export const ColorWords:FunctionComponent<IColorWordsProps> = (props)=>{
  
     const btnSayAnswerImgClassStr = (ConfigSettings.config.dlgSayAnswer?"img-sound":"img-no-sound");
     const btnVisibleImgClassStr = (ConfigSettings.config.dlgAnswerTextHidden?"img-invisible":"img-visible");
-    const btnRepeatImgClassStr = (ConfigSettings.config.dlgRepeat?"img-refresh":"img-refresh-on");
+    const btnRepeatImgClassStr = (ConfigSettings.config.dlgRepeat?"img-refresh-on":"img-refresh");
+    const allSentences = props.text.split("."); 
+    const sCount = allSentences.length;
+    
     return (
         <div >
             <div className="splayer-page__toolbar">
@@ -84,7 +92,22 @@ export const ColorWords:FunctionComponent<IColorWordsProps> = (props)=>{
                         ConfigSettings.dlgRepeat(!ConfigSettings.dlgRepeat())}} >
                     <div className={btnRepeatImgClassStr} />
                 </button>
-                <NumUpDown {...props}/>
+                <NumUpDown value={props.selectedSentenceIndex} 
+                    onLeftBtnClick={()=>{
+                        if(props.selectedSentenceIndex===0){
+                            AppGlobal.dispatch({type:"ActSetSelectedSentenceIndex",index:sCount});
+                            return;    
+                        }
+                        AppGlobal.dispatch({type:"ActSetSelectedSentenceIndex",index:props.selectedSentenceIndex-1});
+                    }}
+                    onRightBtnClick={()=>{
+                        if(props.selectedSentenceIndex > sCount-1){
+                            AppGlobal.dispatch({type:"ActSetSelectedSentenceIndex",index:0});   
+                            return; 
+                        }
+                        AppGlobal.dispatch({type:"ActSetSelectedSentenceIndex",index:props.selectedSentenceIndex+1});                        
+                    }}
+                />
             </div>
             {wordsJsx}
         </div>

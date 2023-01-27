@@ -33,6 +33,7 @@ export const SayButtonWrapper: FunctionComponent<ISayButtonWrapperProps> = (prop
     const simulateButtonClick = ()=>{
         if(props.onBeforeSay ){
             if(!props.onBeforeSay(currItemIndex)){
+                setCurrItemIndex(currItemIndex+1);
                 return;
             }
         }
@@ -55,7 +56,6 @@ export const SayButtonWrapper: FunctionComponent<ISayButtonWrapperProps> = (prop
                         }
                         console.log("say completed");
                     }
-                    
                 }}
             />        
         </div>

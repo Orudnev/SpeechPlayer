@@ -65,8 +65,10 @@ export enum AppStatusEnum{
     SetDataSourceStart="SetDataSourceStart",
     SetDataSourceComplete="SetDataSourceComplete",
     DlgPaused="DlgPaused",
+    DlgStarted="DlgStarted",
     DlgShowItemAndSayQuestion="DlgShowItemAndSayQuestion",
     DlgSayAnswer="DlgSayAnswer",
+    DlgStartListen="DlgStartListen"
 }
 
 
@@ -145,6 +147,7 @@ export interface IAppReducerstate{
     lastRecognizedText:string;
     lastRecognizedResult:SRResultWord[];
     voiceCommand:VoiceCommand;
+    startListenTimaStamp:number;
 }
 
 export const appInitState:IAppReducerstate = {
@@ -160,7 +163,8 @@ export const appInitState:IAppReducerstate = {
     itemsRaw:[],
     lastRecognizedText:"",
     lastRecognizedResult:[],
-    voiceCommand:VoiceCommand.NoCommand
+    voiceCommand:VoiceCommand.NoCommand,
+    startListenTimaStamp:0
 };
 
 export function appReducer(state:IAppReducerstate,action:AppAction){
@@ -181,6 +185,11 @@ export function appReducer(state:IAppReducerstate,action:AppAction){
             return newState;
         case 'ActSetAppStatus':
             newState.AppStatus = action.newStatus;
+            if(action.newStatus == AppStatusEnum.DlgStartListen){
+                newState.startListenTimaStamp = new Date().getTime();
+            } else {
+                newState.startListenTimaStamp = 0;
+            }
             return newState;
         case 'ActSetLastRecognizedText':
             newState.lastRecognizedText = action.text;
@@ -343,6 +352,14 @@ class AppDataHelperClass{
             return newDlgItmWithResult;
         });
         return itemsWithResult;
+    }
+    getListenDurationInSecond(){
+        if (AppGlobal.state.startListenTimaStamp === 0){
+            return 0;
+        } 
+        let diff =  new Date().getTime() - AppGlobal.state.startListenTimaStamp;
+        let result = diff/1000;
+        return result;
     }
     saveDlgItemResult(increaseRepeatCount=false){
         let inc = (increaseRepeatCount?1:0);

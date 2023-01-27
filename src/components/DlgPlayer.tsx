@@ -4,7 +4,7 @@ import { AppStatusEnum, IAppReducerstate, appDataHelper, langEnum,IDialogItem,Co
 import { SayButtonWrapper } from './SayButtonWrapper';
 import SRecognizer, { SRCommand } from './SRecognizer';
 import { SRResultTextAnalyzer,VoiceCommand } from './SRResultAnalyzer';
-import {ColorWords} from './ColorWords';
+import {ColorWords,NumUpDown} from './ColorWords';
 
 interface IDlgPlayerProps {
     appState: IAppReducerstate;
@@ -21,18 +21,23 @@ export const DlgPlayer: FunctionComponent<IDlgPlayerProps> = (props) => {
     }, [props.appState.voiceCommand]);
 
     let selItem = appDataHelper.getSelectedDlgItem();
-    const handleBtnStart = () => {
-        AppGlobal.dispatch({ type: 'ActSetAppStatus', newStatus: AppStatusEnum.DlgShowItemAndSayQuestion });
-        let nextDlgItemIndex = appDataHelper.getNextDlgItemIndex();
-        let nextDlgItem = AppGlobal.state.itemsRaw[nextDlgItemIndex] as IDialogItem;
-        AppGlobal.dispatch({ type: 'ActSelectItem', newIndex: nextDlgItemIndex });            
-        SRResultTextAnalyzer.SetEtalonText(nextDlgItem.p2.en);
-    };
-    const handleBtnPause = () => {
-        AppGlobal.dispatch({ type: 'ActSetAppStatus', newStatus: AppStatusEnum.DlgPaused });
+    const handleBtnStartPause = () => {
+        if(props.appState.AppStatus === AppStatusEnum.DlgPaused){
+            AppGlobal.dispatch({ type: 'ActSetAppStatus', newStatus: AppStatusEnum.DlgStarted });
+            let nextDlgItemIndex = appDataHelper.getNextDlgItemIndex();
+            let nextDlgItem = AppGlobal.state.itemsRaw[nextDlgItemIndex] as IDialogItem;
+            AppGlobal.dispatch({ type: 'ActSelectItem', newIndex: nextDlgItemIndex });            
+            SRResultTextAnalyzer.SetEtalonText(nextDlgItem.p2.en);
+        } else {
+            AppGlobal.dispatch({ type: 'ActSetAppStatus', newStatus: AppStatusEnum.DlgPaused });
+        }
     };
     const handleBeforeSay = (sayTextItemIndex:number) => {
-        if (sayTextItemIndex == 0) {
+        let p=props;
+        if (sayTextItemIndex == 0 ) {
+            if(props.appState.AppStatus === AppStatusEnum.DlgSayAnswer){
+                return false;
+            }
             AppGlobal.dispatch({ type: 'ActSetAppStatus', newStatus: AppStatusEnum.DlgShowItemAndSayQuestion });
         }
         if (sayTextItemIndex == 1) {
@@ -46,6 +51,12 @@ export const DlgPlayer: FunctionComponent<IDlgPlayerProps> = (props) => {
     };
     const handleAllSayItemsSaid = () => {
         AppGlobal.dispatch({ type: 'ActExecSRCommand', command: SRCommand.StartListen });
+        if(ConfigSettings.dlgRepeat()){
+            setTimeout(() => {
+                AppGlobal.dispatch({type:"ActExecSRCommand",command:SRCommand.StopListen});
+                AppGlobal.dispatch({type:"ActSetAppStatus",newStatus:AppStatusEnum.DlgSayAnswer});
+            }, 5000);
+        }
     };
 
 
@@ -61,27 +72,29 @@ export const DlgPlayer: FunctionComponent<IDlgPlayerProps> = (props) => {
     }
 
     let isPausedStatus = (props.appState.AppStatus == AppStatusEnum.DlgPaused);
-    let moveNextItemClassStr = (true ? "toolbar-button toolbar-button__text toolbar-button__enabled" : "toolbar-button toolbar-button__text toolbar-button__disabled");
-    let playBtnClassStr = (isPausedStatus ? "toolbar-button" : "toolbar-button toolbar-button__disabled");
-    let pauseBtnClassStr = (!isPausedStatus ? "toolbar-button" : "toolbar-button toolbar-button__disabled");
+    let playBtnClassStr = (isPausedStatus ? "toolbar-button toolbar-button__disabled" : "toolbar-button toolbar-button__enabled");
     let microponeBtnClassStr = (props.appState.SRecognizeCmd == SRCommand.StartListen?"img-microphoneOn":"img-microphoneOff");
-    
+    let sayTextItems:any[] = [];
+    if(selItem){
+        sayTextItems = [{ sayText: selItem.p1.en }];        
+        if(props.appState.selectedSentenceIndex === 0 ){
+            sayTextItems.push({ sayText: selItem!.p2.en });
+        } else {
+            let sentencies = selItem!.p2.en.split(".");
+            let senttxt = sentencies[props.appState.selectedSentenceIndex-1];
+            sayTextItems.push({sayText:senttxt});
+        }
+    }    
     return (
         <div className="splayer-page">
             <div className="splayer-page__toolbar">
-                <button className={playBtnClassStr} onClick={handleBtnStart} disabled={!isPausedStatus}>
+                <button className={playBtnClassStr} onClick={handleBtnStartPause} >
                     <div className={"img-play"} />
                 </button>
-                <button className={pauseBtnClassStr} disabled={isPausedStatus} onClick={handleBtnPause}>
-                    <div className={"img-pause"} />
-                </button>
-                <button className={moveNextItemClassStr} onClick={() => {
-
-                }}>next
-                </button>
+                <NumUpDown />
                 <button className={"toolbar-button"} onClick={() => {
 
-                }}>
+                     }}>
                     <div className="img-config" />
                 </button>
                 <button className={"toolbar-button"} onClick={() => {
@@ -105,7 +118,7 @@ export const DlgPlayer: FunctionComponent<IDlgPlayerProps> = (props) => {
                     <div className="popup-content">Voice command</div>
                 </div>}
             {sayButtonWrapperJsxShow &&
-                <SayButtonWrapper sayItemQueue={[{ sayText: selItem!.p1.en }, { sayText: selItem!.p2.en }]}
+                <SayButtonWrapper sayItemQueue={sayTextItems}
                     onBeforeSay={handleBeforeSay} onAllItemsSaid={handleAllSayItemsSaid} />}
 
         </div> 
