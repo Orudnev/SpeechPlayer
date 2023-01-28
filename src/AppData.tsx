@@ -22,9 +22,9 @@ interface IResultRecord{
 }
 
 export enum RoutePath{
-    root = "/",
-    speech = "/speech",
-    dialog = "/dialog"
+    root = "/SpeechPlayer",
+    speech = "/SpeechPlayer/speech",
+    dialog = "/SpeechPlayer/dialog"
   }
 
 export enum langEnum {
