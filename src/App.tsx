@@ -42,6 +42,7 @@ function App() {
   return ( 
     <div> 
       <Routes>
+        <Route path={"/"} element={<SelectDataSource dispatch={dispatch} />} />
         <Route path={RoutePath.root} element={<SelectDataSource dispatch={dispatch} />} />
         <Route path={RoutePath.speech} element={<div>play speech</div>}/>
         <Route path={RoutePath.dialog} element={<DlgPlayer appState={state} />} /> 

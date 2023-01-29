@@ -192,7 +192,7 @@ export function appReducer(state:IAppReducerstate,action:AppAction){
             return newState;
         case 'ActSetLastRecognizedText':
             newState.lastRecognizedText = action.text;
-            newState.lastRecognizedResult = action.recognizedResult;
+            newState.lastRecognizedResult = action.recognizedResult;            
             return newState;
         case 'ActSelectItem':
             newState.selItemIndex = action.newIndex;

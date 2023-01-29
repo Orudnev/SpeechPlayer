@@ -1,5 +1,7 @@
+import { idText } from "typescript";
 import { AppGlobal } from "../App";
 import reportWebVitals from "../reportWebVitals";
+import { SRCommand } from "./SRecognizer";
 
 
 function devideWordsContainingHyphen(inStr: string) {
@@ -8,7 +10,7 @@ function devideWordsContainingHyphen(inStr: string) {
 }
 
 function filterUnnecessarySymbols(inStr: string) {
-    let result = inStr.replace(/[\.]/g, "");
+    let result = inStr.replace(/[\.,]/g, "");
     result = devideWordsContainingHyphen(result);
     return result;
 }
@@ -47,7 +49,7 @@ class SRResultTextAnalyzerClass {
     etalonWords: SRResultWord[] = [];
     isCommandMode = false;
     startCommandWords = ["google", "coco", "go go", "oh"];
-
+    diffText = "";
     SetEtalonText(text: string) {
         this.etalonText = text;
         this.etalonWords = [];
@@ -65,6 +67,7 @@ class SRResultTextAnalyzerClass {
                 this.etalonWords.push(newItem);
             }
         });
+        console.log("etalonWords",this.etalonWords);
     }
 
     AddNewText(recognizedText: string) {
@@ -72,7 +75,7 @@ class SRResultTextAnalyzerClass {
             let s = 1;
         }
         recognizedText = filterUnnecessarySymbols(recognizedText);
-        let diffText = ""
+        this.diffText = ""
         let equals = false;
         let prevRecognizedText = AppGlobal.state.lastRecognizedText;
         let lastWord = "";
@@ -89,29 +92,36 @@ class SRResultTextAnalyzerClass {
                     continue;
                 }
             }
-            if(diffText==""){
-                diffText = lastWord;
+            if(this.diffText==""){
+                this.diffText = lastWord;
             }
-            diffText += currChar; 
+            this.diffText += currChar; 
         }
 
-        if (!diffText) {
-            diffText = recognizedText;
+        if (!this.diffText) {
+            this.diffText = recognizedText;
         } 
         //console.log("prevRecText",prevRecognizedText);
         console.log("recText",recognizedText);
-        console.log("diffText",diffText);
+        console.log("diffText",this.diffText);
         if (this.isCommandMode) {
-            this.processCommand(diffText);
+            this.processCommand(this.diffText);
             return;
         } else {
-            if (this.findStartCommandWord(diffText)) {
+            if (this.findStartCommandWord(this.diffText)) {
                 this.isCommandMode = true;
                 AppGlobal.dispatch({type:"ActExecVoiceCommand",command:VoiceCommand.ListenCommand});
+                setTimeout(()=>{
+                    if(this.isCommandMode){
+                        AppGlobal.dispatch({type:"ActExecVoiceCommand",command:VoiceCommand.NoCommand});
+                        AppGlobal.dispatch({type:"ActExecSRCommand",command:SRCommand.ResetResult});
+                        this.isCommandMode = false;
+                    }
+                },3000);    
                 return;
             }
         }
-
+        this.etalonWords.forEach(itm=>itm.resultCount = 0);
         let allWords = recognizedText.split(" ");
         allWords.forEach(wrd => {
             let rItem = this.etalonWords.find(rw => rw.text.toLowerCase() == wrd.toLowerCase());

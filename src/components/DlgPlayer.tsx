@@ -6,6 +6,7 @@ import SRecognizer, { SRCommand } from './SRecognizer';
 import { SRResultTextAnalyzer,VoiceCommand } from './SRResultAnalyzer';
 import {ColorWords,NumUpDown} from './ColorWords';
 
+
 interface IDlgPlayerProps {
     appState: IAppReducerstate;
 }
@@ -14,9 +15,7 @@ export const DlgPlayer: FunctionComponent<IDlgPlayerProps> = (props) => {
     useEffect(() => {
         if (props.appState.voiceCommand == VoiceCommand.GoNextItem) {
             let nextIndex = appDataHelper.getNextDlgItemIndex();
-            AppGlobal.dispatch({ type: "ActExecSRCommand", command: SRCommand.StopListen });
-            AppGlobal.dispatch({ type: "ActExecVoiceCommand", command: VoiceCommand.NoCommand });
-            AppGlobal.dispatch({ type: "ActSelectItem", newIndex: nextIndex });
+            selectNewItem(nextIndex);
         } 
     }, [props.appState.voiceCommand]);
 
@@ -42,6 +41,7 @@ export const DlgPlayer: FunctionComponent<IDlgPlayerProps> = (props) => {
             let nextDlgItem = AppGlobal.state.itemsRaw[nextDlgItemIndex] as IDialogItem;
             SRResultTextAnalyzer.SetEtalonText(nextDlgItem.p2.en);
         } else {
+            AppGlobal.dispatch({type:"ActExecSRCommand",command:SRCommand.StopListen})
             AppGlobal.dispatch({ type: 'ActSetAppStatus', newStatus: AppStatusEnum.DlgPaused });
         }
     };
@@ -103,6 +103,7 @@ export const DlgPlayer: FunctionComponent<IDlgPlayerProps> = (props) => {
     if(nudValue === -1){
         nudValue = "";
     }
+    //console.log("recResult:",props.appState.lastRecognizedResult); 
     return (
         <div className="splayer-page">
             <div className="splayer-page__toolbar">
@@ -138,6 +139,7 @@ export const DlgPlayer: FunctionComponent<IDlgPlayerProps> = (props) => {
                 <div>
                     <h3>Answer:</h3>
                     <ColorWords text={selItem!.p2.en} recResult={props.appState.lastRecognizedResult} selectedSentenceIndex={props.appState.selectedSentenceIndex} />
+                    <div>{SRResultTextAnalyzer.diffText}</div>
                 </div>}
             {popupCommandJsxShow &&
                 <div className="popup-container">
