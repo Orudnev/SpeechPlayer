@@ -1,6 +1,6 @@
 import React, { FunctionComponent, useState, useEffect } from 'react';
 import { AppGlobal } from '../App';
-import { AppStatusEnum, IAppReducerstate, appDataHelper, langEnum,IDialogItem,ConfigSettings } from '../AppData';
+import { AppStatusEnum, IAppReducerstate, appDataHelper, langEnum,IDialogItem,ConfigSettings,RoutePath } from '../AppData';
 import { SayButtonWrapper } from './SayButtonWrapper';
 import SRecognizer, { SRCommand } from './SRecognizer';
 import { SRResultTextAnalyzer,VoiceCommand } from './SRResultAnalyzer';
@@ -120,7 +120,7 @@ export const DlgPlayer: FunctionComponent<IDlgPlayerProps> = (props) => {
                         selectNewItem(nextIndex);                        
                     }} />
                 <button className={"toolbar-button"} onClick={() => {
-
+                        AppGlobal.navigate(RoutePath.config);
                      }}>
                     <div className="img-config" />
                 </button>

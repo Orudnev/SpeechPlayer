@@ -122,7 +122,51 @@
     font-weight: 700;
 }
 
+.config-page{
+    padding: 10px;
+}
 
+.slider>.value{
+    margin-top: 10px;
+    text-align: center;
+    font-size: 20px;
+    font-weight: 600;
+}
+
+.slider>input{
+    width:100%;
+}
+ 
+.checkbox>.caption{
+    display: inline-block;
+}
+ 
+.checkbox>input{ 
+    width: 25px;
+    height: 25px;
+    float: right;
+    margin-top: -2px;
+}
+
+sel-lang{
+    display: block;
+}
+.sel-lang>.rb-div{
+    float: right;
+    margin-top: -25px;
+}
+.sel-lang>.rb-div>label{
+    position: relative;
+    top: -5px;
+}
+.sel-lang>.rb-div>.rb-space{
+    display: inline-block;
+    width: 50px;
+}
+.sel-lang>.rb-div>input{
+    width: 25px;
+    height: 25px; 
+}
 
 .img32Icondiv {
     width: 32px;

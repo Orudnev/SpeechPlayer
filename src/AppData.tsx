@@ -24,7 +24,8 @@ interface IResultRecord{
 export enum RoutePath{
     root = "/SpeechPlayer",
     speech = "/SpeechPlayer/speech",
-    dialog = "/SpeechPlayer/dialog"
+    dialog = "/SpeechPlayer/dialog",
+    config = "/SpeechPlayer/config"
   }
 
 export enum langEnum {
@@ -227,17 +228,39 @@ interface IDlgItemWithResult{
     originalIndex:number;
 }
 
+export type TLang = 'EN'|'RU';
+export type TLRuid = 'lang'|'enableSR'|'srDurationPerWord';
+
+export interface ILocMessage{
+    uid:TLRuid;
+    en:string;
+    ru:string;
+}
+
+
+
+
+
 interface IAppConfigSettings{
     dlgAnswerTextHidden:boolean;
     dlgSayAnswer:boolean;
     dlgRepeat:boolean;
+    dlgLanguage:TLang;
+    dlgEnableSR:boolean;
+    dlgSrDuration:number;
 }
 
 const defaultConfigSettings:IAppConfigSettings = {
     dlgAnswerTextHidden: true,
     dlgSayAnswer: true,
-    dlgRepeat:false
+    dlgRepeat:false,
+    dlgLanguage:'EN',
+    dlgEnableSR:true,
+    dlgSrDuration:5
 }
+
+type TConfigProp = keyof typeof defaultConfigSettings;
+
 
 class ConfigSettingsClass{
     config:IAppConfigSettings;
@@ -266,6 +289,15 @@ class ConfigSettingsClass{
         localStorage.setItem(LstorageKey.config,newSettingsStr);
         AppGlobal.dispatch({type:"ActForceRender"});
     }
+
+    prop(propName:TConfigProp,value:any=undefined){
+        if(value === undefined){
+            return this.config[propName];
+        }
+        //@ts-ignore
+        this.config[propName] = value;
+        this.save();
+    }    
 
     dlgAnswerTextHidden(value:boolean|undefined = undefined){
         if(value === undefined){

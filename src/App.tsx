@@ -17,6 +17,7 @@ import {SRResultTextAnalyzer} from './components/SRResultAnalyzer';
 import {SPlayer} from "./components/SPlayer";
 import test from './test';
 import {ColorWords,IColorWordsProps} from "./components/ColorWords";
+import { ConfigPage } from './components/ConfigPage';
 
 export const AppGlobal = {
   navigate:(url:string)=>{},
@@ -46,6 +47,7 @@ function App() {
         <Route path={RoutePath.root} element={<SelectDataSource dispatch={dispatch} />} />
         <Route path={RoutePath.speech} element={<div>play speech</div>}/>
         <Route path={RoutePath.dialog} element={<DlgPlayer appState={state} />} /> 
+        <Route path={RoutePath.config} element={<ConfigPage />} /> 
       </Routes>
       <SRecognizer command={state.SRecognizeCmd} onChange={(rtext:string)=>{
             if(rtext){
