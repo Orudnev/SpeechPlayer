@@ -124,11 +124,13 @@ export const DlgPlayer: FunctionComponent<IDlgPlayerProps> = (props) => {
                      }}>
                     <div className="img-config" />
                 </button>
-                <button className={"toolbar-button"} onClick={() => {
+                {ConfigSettings.prop('dlgEnableSR') && 
+                    <button className={"toolbar-button"} onClick={() => {
 
-                }}>
-                    <div className={microponeBtnClassStr} />
-                </button>
+                    }}>
+                        <div className={microponeBtnClassStr} />
+                    </button>
+                }
             </div>
             {questionTextJsxShow &&
                 <div>

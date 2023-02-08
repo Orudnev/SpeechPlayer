@@ -193,7 +193,16 @@ export function appReducer(state:IAppReducerstate,action:AppAction){
             return newState;
         case 'ActSetLastRecognizedText':
             newState.lastRecognizedText = action.text;
-            newState.lastRecognizedResult = action.recognizedResult;            
+            newState.lastRecognizedResult = action.recognizedResult;
+            if((ConfigSettings.prop('dlgEnableSR') as boolean) && (ConfigSettings.prop('dlgEnableAutoGoNext') as boolean)){
+                const etlWrdCount = newState.lastRecognizedResult.reduce((acc,itm)=>acc + itm.etalonCount,0);
+                const unrecognizedWrdCount = newState.lastRecognizedResult.reduce((acc,itm)=>acc + (itm.resultCount<=itm.etalonCount?itm.etalonCount-itm.resultCount:0),0);
+                const percentOrRecWrd = ((etlWrdCount - unrecognizedWrdCount)/etlWrdCount)*100;
+                const limitWrd = ConfigSettings.prop('dlgLimitForGoNext') as number;
+                if(percentOrRecWrd>=limitWrd){
+                    newState.voiceCommand = VoiceCommand.GoNextItem;
+                }                
+            }
             return newState;
         case 'ActSelectItem':
             newState.selItemIndex = action.newIndex;
@@ -229,7 +238,7 @@ interface IDlgItemWithResult{
 }
 
 export type TLang = 'EN'|'RU';
-export type TLRuid = 'lang'|'enableSR'|'srDurationPerWord';
+export type TLRuid = 'lang'|'enableSR'|'srDurationPerWord'|'enableGoNext'|'limitGoNext';
 
 export interface ILocMessage{
     uid:TLRuid;
@@ -247,6 +256,8 @@ interface IAppConfigSettings{
     dlgRepeat:boolean;
     dlgLanguage:TLang;
     dlgEnableSR:boolean;
+    dlgEnableAutoGoNext:boolean;
+    dlgLimitForGoNext:number,
     dlgSrDuration:number;
 }
 
@@ -256,6 +267,8 @@ const defaultConfigSettings:IAppConfigSettings = {
     dlgRepeat:false,
     dlgLanguage:'EN',
     dlgEnableSR:true,
+    dlgEnableAutoGoNext:false,  //Go next automatically if % of recognized words > dlgLimitForGoNext
+    dlgLimitForGoNext:70,
     dlgSrDuration:5
 }
 
@@ -451,7 +464,7 @@ class ConvertBinToStrClass{
   
     onBinToStringConverted(e: any) {
         this.result = e.srcElement.result;
-    }   
+    }    
 }
 
 const ConvertBinToStr = new ConvertBinToStrClass();

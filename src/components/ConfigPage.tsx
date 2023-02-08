@@ -6,6 +6,9 @@ import { TLang,TLRuid,ILocMessage,ConfigSettings,RoutePath } from '../AppData';
 interface ISliderProps {
     caption: string;
     value:number;
+    min:number;
+    max:number;
+    step:number;
     onChange:(value:number)=>void;
 }
 const SliderComp = (props: ISliderProps) => {
@@ -13,7 +16,7 @@ const SliderComp = (props: ISliderProps) => {
         <div className='slider'>
             <div className='caption'>{props.caption}</div>
             <div className='value'>{props.value.toFixed(1)}</div>
-            <input type="range" min="0.5" max="30" step="0.5" value={props.value} onChange={(e) => {
+            <input type="range" min={props.min} max={props.max} step={props.step} value={props.value} onChange={(e) => {
                 props.onChange(parseFloat(e.target.value));
             }} />
             <hr />
@@ -59,7 +62,12 @@ const SelLang = (props:ISelLangProps)=>{
 const messages:ILocMessage[] = [
     {uid:'lang',en:"Language",ru:"Язык"},
     {uid:'enableSR',en:"Speech recognition",ru:"Распознавание речи"},
-    {uid:'srDurationPerWord',en:"Duration of answer listening (second / each word of answer)",ru:"Длительность ожидания прослушивания ответа (секунд / на каждое слово ответа )"},
+    {uid:'srDurationPerWord',en:"Duration of answer listening (second / each word of answer)",
+            ru:"Длительность ожидания прослушивания ответа (секунд / на каждое слово ответа )"},
+    {uid:'enableSR',en:"Speech recognition",ru:"Распознавание речи"},
+    {uid:'enableGoNext',en:"Automatically move to next question if % of recognized words of current answer is more than specified below",
+            ru:"Выполнять автоматический переход к следующему вопросу если % распознанных слов текущего ответа больше чем указано ниже"},
+    {uid:'limitGoNext',en:"% of recognized words of current answer",ru:"% распознанных слов текущего ответа"},
 ]
 
 function getLr(uid:TLRuid,lang:TLang):string{
@@ -75,6 +83,8 @@ export const ConfigPage = () => {
     const [lang,setLang] = useState(ConfigSettings.prop('dlgLanguage') as TLang);
     const [useSR,setUseSR] = useState(ConfigSettings.prop('dlgEnableSR') as boolean);
     const [wrdDuration,setWrdDuration] = useState(ConfigSettings.prop('dlgSrDuration') as number);
+    const [enableGoNext,setEnableGoNext] = useState(ConfigSettings.prop('dlgEnableAutoGoNext') as boolean);
+    const [limitGoNext,setLimitGoNext] = useState(ConfigSettings.prop('dlgLimitForGoNext') as number);
     const handleExitButtonClick = ()=>{
         ConfigSettings.prop('dlgLanguage',lang);
         ConfigSettings.prop('dlgEnableSR',useSR);
@@ -99,7 +109,10 @@ export const ConfigPage = () => {
             <hr />
             <CheckBox checked={useSR} onChange={()=>setUseSR(!useSR)} caption={getLr('enableSR',lang)} />
             <hr />
-            {useSR && <SliderComp caption={getLr('srDurationPerWord',lang)} value={wrdDuration} onChange={(newVal)=>setWrdDuration(newVal)} />}
+            {useSR && <CheckBox checked={enableGoNext} onChange={()=>setEnableGoNext(!enableGoNext)} caption={getLr('enableGoNext',lang)} />}
+            {useSR && <hr />}
+            {useSR && enableGoNext && <SliderComp caption={getLr('limitGoNext',lang)} value={limitGoNext} onChange={(newVal)=>setLimitGoNext(newVal)} min={30} max={100} step={1} />}
+            {useSR && <SliderComp caption={getLr('srDurationPerWord',lang)} value={wrdDuration} onChange={(newVal)=>setWrdDuration(newVal)} min={0.5} max={30} step={0.5} />}
         </div>
     );
 }

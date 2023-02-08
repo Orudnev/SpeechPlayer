@@ -123,6 +123,7 @@
 }
 
 .config-page{
+    max-width:500px;
     padding: 10px;
 }
 
@@ -138,6 +139,7 @@
 }
  
 .checkbox>.caption{
+    max-width: 90%;
     display: inline-block;
 }
  
