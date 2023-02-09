@@ -11,6 +11,7 @@ import {appReducer,appInitState,DispatchFunc,AppAction } from "./AppData";
 import {SelectDataSource} from "./components/SelectDataSource";
 import { RoutePath } from './AppData';
 import { DlgPlayer } from './components/DlgPlayer';
+import { PhraseMemorizer } from './components/PhraseMemorizer';
 import SRecognizer from './components/SRecognizer';
 import {SRResultTextAnalyzer} from './components/SRResultAnalyzer';
 
@@ -20,7 +21,7 @@ import {ColorWords,IColorWordsProps} from "./components/ColorWords";
 import { ConfigPage } from './components/ConfigPage';
 
 export const AppGlobal = {
-  navigate:(url:string)=>{},
+  navigate:(url:any)=>{},
   dispatch:(action:AppAction)=>{},
   state:appInitState
 }
@@ -47,6 +48,7 @@ function App() {
         <Route path={RoutePath.root} element={<SelectDataSource dispatch={dispatch} />} />
         <Route path={RoutePath.speech} element={<div>play speech</div>}/>
         <Route path={RoutePath.dialog} element={<DlgPlayer appState={state} />} /> 
+        <Route path={RoutePath.phraseMemorizer} element={<PhraseMemorizer appState={state} />} /> 
         <Route path={RoutePath.config} element={<ConfigPage />} /> 
       </Routes>
       <SRecognizer command={state.SRecognizeCmd} onChange={(rtext:string)=>{

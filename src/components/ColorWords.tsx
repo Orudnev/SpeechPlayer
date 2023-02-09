@@ -113,7 +113,9 @@ export const ColorWords:FunctionComponent<IColorWordsProps> = (props)=>{
                     }}
                 />
             </div>
-            {wordsJsx}
+            <div className={"phrase-text"}>
+                {wordsJsx}
+            </div>
         </div>
     );
 }

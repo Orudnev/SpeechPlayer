@@ -25,6 +25,7 @@ export enum RoutePath{
     root = "/SpeechPlayer",
     speech = "/SpeechPlayer/speech",
     dialog = "/SpeechPlayer/dialog",
+    phraseMemorizer = "/PhraseMemorizer",
     config = "/SpeechPlayer/config"
   }
 
@@ -472,6 +473,12 @@ const ConvertBinToStr = new ConvertBinToStrClass();
 function processJsonFile(jsonFileContentStr:string,newState:IAppReducerstate){
     let incomingJson = JSON.parse(jsonFileContentStr);
     newState.itemsRaw = incomingJson.items;
+    if(incomingJson.hasOwnProperty("dataFormat")){
+        if(incomingJson.dataFormat === "phraseMemorizer"){
+            newState.CurrentRoutePath = RoutePath.phraseMemorizer;
+            return;
+        }
+    }
     let listItem = newState.itemsRaw[0];
     if(listItem.hasOwnProperty("p1")){
         newState.CurrentRoutePath = RoutePath.dialog;

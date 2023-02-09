@@ -27,7 +27,11 @@ export const SayButtonWrapper: FunctionComponent<ISayButtonWrapperProps> = (prop
         let enVoice = "Microsoft Mark - English (United States)";
         let ruVoice = "Google русский";
         let voiceName = (currItem.lang == langEnum.enUs ? enVoice : ruVoice);
-        return voices.find((voice: any) => voice.name === voiceName);
+        let result = voices.find((voice: any) => voice.name === voiceName);
+        if(result){
+            console.log(result);
+        }
+        return result;
     }
     const sayWrapRef = useRef<HTMLDivElement>(null);
     const simulateButtonClick = ()=>{

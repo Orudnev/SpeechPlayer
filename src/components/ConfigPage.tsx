@@ -89,7 +89,9 @@ export const ConfigPage = () => {
         ConfigSettings.prop('dlgLanguage',lang);
         ConfigSettings.prop('dlgEnableSR',useSR);
         ConfigSettings.prop('dlgSrDuration',wrdDuration);
-        AppGlobal.navigate(RoutePath.dialog);
+        ConfigSettings.prop('dlgEnableAutoGoNext',enableGoNext);
+        ConfigSettings.prop('dlgLimitForGoNext',limitGoNext);
+        AppGlobal.navigate(-1);
     }
     return (
         <div className='config-page'>
