@@ -201,6 +201,7 @@ export function appReducer(state:IAppReducerstate,action:AppAction){
                 const percentOrRecWrd = ((etlWrdCount - unrecognizedWrdCount)/etlWrdCount)*100;
                 const limitWrd = ConfigSettings.prop('dlgLimitForGoNext') as number;
                 if(percentOrRecWrd>=limitWrd){
+                    appDataHelper.saveDlgItemResult(true);
                     newState.voiceCommand = VoiceCommand.GoNextItem;
                 }                
             }
