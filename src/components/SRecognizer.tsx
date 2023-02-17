@@ -3,6 +3,7 @@ import { createSpeechlySpeechRecognition } from '@speechly/speech-recognition-po
 //@ts-ignore
 import SpeechRecognition, { useSpeechRecognition } from 'react-speech-recognition';
 import { wait } from './AsyncHelper';
+import { langEnum } from '../AppData';
 
 const appId = '<INSERT_SPEECHLY_APP_ID_HERE>';
 const SpeechlySpeechRecognition = createSpeechlySpeechRecognition(appId);
@@ -18,6 +19,7 @@ export enum SRCommand{
 
 export interface ISRecognizerProps{
     command:SRCommand;
+    lang:langEnum;
     onChange:(text:string)=>void;
 }
 
@@ -57,7 +59,6 @@ const SRecognizer = (props:ISRecognizerProps) => {
       browserSupportsSpeechRecognition
     } = useSpeechRecognition();    
 
-
     if (!browserSupportsSpeechRecognition) {
       alert("Browser doesn't support speech recognition.");
       return (<div />);
@@ -70,7 +71,7 @@ const SRecognizer = (props:ISRecognizerProps) => {
                 resetTranscript();
             }
             setTimeout(()=>{
-                SpeechRecognition.startListening({continuous: true,language: 'en-US'});    
+                SpeechRecognition.startListening({continuous: true,language: props.lang});    
             },0)
         }
         if(!stubTalkerInstance){

@@ -31,7 +31,7 @@ export enum RoutePath{
 
 export enum langEnum {
     enUs = "en-US",
-    ruRu = "ru=RU"
+    ruRu = "ru-RU"
 }
 
 export interface ISpeechItem {
@@ -43,7 +43,7 @@ export interface ISpeechItem {
 
 export interface IDialogItem {
     p1: ISpeechItem;
-    p2: ISpeechItem;
+    p2: ISpeechItem; 
 }
 
 enum AsyncOperationType{
@@ -104,6 +104,7 @@ export interface IActSetLastRecognizedText{
 
 export interface IActExecSRCommand{
     type:"ActExecSRCommand";
+    lang?:langEnum;
     command:SRCommand;
 }
 
@@ -145,6 +146,7 @@ export interface IAppReducerstate{
     selectedSentenceIndex:number;
     MP3url:string;
     SRecognizeCmd:SRCommand;
+    SRLang:langEnum;
     itemsRaw:any[];
     lastRecognizedText:string;
     lastRecognizedResult:SRResultWord[];
@@ -162,6 +164,7 @@ export const appInitState:IAppReducerstate = {
     selectedSentenceIndex:0,
     MP3url:"",
     SRecognizeCmd:SRCommand.StopListen,
+    SRLang:langEnum.enUs,
     itemsRaw:[],
     lastRecognizedText:"",
     lastRecognizedResult:[],
@@ -213,6 +216,11 @@ export function appReducer(state:IAppReducerstate,action:AppAction){
             return newState;
         case 'ActExecSRCommand':
             newState.SRecognizeCmd = action.command;
+            if(action.lang){
+                newState.SRLang = action.lang;
+            } else {
+                newState.SRLang = langEnum.enUs;
+            }
             return newState;
         case 'ActExecVoiceCommand':
             newState.voiceCommand = action.command;

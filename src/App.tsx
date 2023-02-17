@@ -51,7 +51,7 @@ function App() {
         <Route path={RoutePath.phraseMemorizer} element={<PhraseMemorizer appState={state} />} /> 
         <Route path={RoutePath.config} element={<ConfigPage />} /> 
       </Routes>
-      <SRecognizer command={state.SRecognizeCmd} onChange={(rtext:string)=>{
+      <SRecognizer command={state.SRecognizeCmd} lang={state.SRLang} onChange={(rtext:string)=>{
             if(rtext){
                 setTimeout(()=>{
                   //dispatch({type:"ActSetLastRecognizedText",text:rtext});

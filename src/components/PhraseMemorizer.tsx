@@ -25,7 +25,10 @@ export const PhraseMemorizer: FunctionComponent<IDlgPlayerProps> = (props) => {
         AppGlobal.dispatch({ type: "ActExecVoiceCommand", command: VoiceCommand.NoCommand });
         AppGlobal.dispatch({ type: "ActSelectItem", newIndex: newItemIndex });
         let newDlgItem = AppGlobal.state.itemsRaw[newItemIndex] as IDialogItem;
-        SRResultTextAnalyzer.SetEtalonText(newDlgItem.p2.en);
+        let etltext = "";
+        if(newDlgItem.p2.en) etltext = newDlgItem.p2.en;
+        if(newDlgItem.p2.ru) etltext = newDlgItem.p2.ru;
+        SRResultTextAnalyzer.SetEtalonText(etltext);
         AppGlobal.dispatch({ type: 'ActSetAppStatus', newStatus: AppStatusEnum.DlgPaused }); 
         setTimeout(() => {
             AppGlobal.dispatch({ type: 'ActSetAppStatus', newStatus: AppStatusEnum.DlgStarted });                           
@@ -40,7 +43,10 @@ export const PhraseMemorizer: FunctionComponent<IDlgPlayerProps> = (props) => {
             let nextDlgItemIndex = appDataHelper.getNextDlgItemIndex();
             AppGlobal.dispatch({ type: 'ActSelectItem', newIndex: nextDlgItemIndex });            
             let nextDlgItem = AppGlobal.state.itemsRaw[nextDlgItemIndex] as IDialogItem;
-            SRResultTextAnalyzer.SetEtalonText(nextDlgItem.p2.en);
+            let etltext = "";
+            if(nextDlgItem.p2.en) etltext = nextDlgItem.p2.en;
+            if(nextDlgItem.p2.ru) etltext = nextDlgItem.p2.ru;    
+            SRResultTextAnalyzer.SetEtalonText(etltext);
         } else {
             AppGlobal.dispatch({type:"ActExecSRCommand",command:SRCommand.StopListen})
             AppGlobal.dispatch({ type: 'ActSetAppStatus', newStatus: AppStatusEnum.DlgPaused });
@@ -64,7 +70,11 @@ export const PhraseMemorizer: FunctionComponent<IDlgPlayerProps> = (props) => {
         return true;
     };
     const handleAllSayItemsSaid = () => {
-        AppGlobal.dispatch({ type: 'ActExecSRCommand', command: SRCommand.StartListen });
+        let lng = langEnum.enUs;
+        if(selItem && selItem.p2.ru){
+            lng = langEnum.ruRu;
+        }
+        AppGlobal.dispatch({ type: 'ActExecSRCommand', command: SRCommand.StartListen,lang:lng});
         if(ConfigSettings.dlgRepeat()){
             setTimeout(() => {
                 AppGlobal.dispatch({type:"ActExecSRCommand",command:SRCommand.StopListen});
@@ -108,6 +118,15 @@ export const PhraseMemorizer: FunctionComponent<IDlgPlayerProps> = (props) => {
     let nudLbDisabled = appDataHelper.dlgItemsHistoryStack.length<2;
     if(nudValue === -1){
         nudValue = "";
+    }   
+    let answerText = " ";  
+    if(selItem){
+        if(selItem.p2.ru){
+            answerText = (selItem.p2.ru)    
+        }
+        if(selItem.p2.en){
+            answerText = (selItem.p2.en)    
+        }
     }
     return (
         <div className="splayer-page">
@@ -146,7 +165,7 @@ export const PhraseMemorizer: FunctionComponent<IDlgPlayerProps> = (props) => {
             {answerTextJsxShow &&
                 <div>
                     <h3>Answer:</h3>
-                    <ColorWords text={selItem!.p2.en} recResult={props.appState.lastRecognizedResult} selectedSentenceIndex={props.appState.selectedSentenceIndex} />
+                    <ColorWords text={answerText} recResult={props.appState.lastRecognizedResult} selectedSentenceIndex={props.appState.selectedSentenceIndex} />
                     <div>{SRResultTextAnalyzer.diffText}</div>
                 </div>}
             {popupCommandJsxShow &&

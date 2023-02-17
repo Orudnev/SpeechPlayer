@@ -10,7 +10,7 @@ function devideWordsContainingHyphen(inStr: string) {
 }
 
 function filterUnnecessarySymbols(inStr: string) {
-    let result = inStr.replace(/[\.,]/g, "");
+    let result = inStr.replace(/[\.,!?]/g, "");
     result = devideWordsContainingHyphen(result);
     return result;
 }
