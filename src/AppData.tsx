@@ -70,7 +70,11 @@ export enum AppStatusEnum{
     DlgStarted="DlgStarted",
     DlgShowItemAndSayQuestion="DlgShowItemAndSayQuestion",
     DlgSayAnswer="DlgSayAnswer",
-    DlgStartListen="DlgStartListen"
+    DlgStartListen="DlgStartListen",
+    DlgStopListen="DlgStopListen",
+    DlgStartFakeListen="DlgStartFakeListen", // It is not actually listen because speech recognition disabled, 
+    //                                              go to next item will be executed after timeout 
+    DlgStopFakeListen="DlgStopFakeListen"
 }
 
 
@@ -122,7 +126,6 @@ export interface IActSetSelectedSentenceIndex{
     index:number;
 }
 
-
 export type DispatchFunc = (action:AppAction)=>void;
 
 export type AppAction = 
@@ -151,7 +154,7 @@ export interface IAppReducerstate{
     lastRecognizedText:string;
     lastRecognizedResult:SRResultWord[];
     voiceCommand:VoiceCommand;
-    startListenTimaStamp:number;
+    startListenTimeStamp:number;
 }
 
 export const appInitState:IAppReducerstate = {
@@ -169,7 +172,7 @@ export const appInitState:IAppReducerstate = {
     lastRecognizedText:"",
     lastRecognizedResult:[],
     voiceCommand:VoiceCommand.NoCommand,
-    startListenTimaStamp:0
+    startListenTimeStamp:0
 };
 
 export function appReducer(state:IAppReducerstate,action:AppAction){
@@ -190,10 +193,10 @@ export function appReducer(state:IAppReducerstate,action:AppAction){
         case 'ActSetAppStatus':
             newState.AppStatus = action.newStatus;
             if(action.newStatus == AppStatusEnum.DlgStartListen){
-                newState.startListenTimaStamp = new Date().getTime();
+                newState.startListenTimeStamp = new Date().getTime();
             } else {
-                newState.startListenTimaStamp = 0;
-            }
+                newState.startListenTimeStamp = 0;
+            }            
             return newState;
         case 'ActSetLastRecognizedText':
             newState.lastRecognizedText = action.text;
@@ -419,10 +422,10 @@ class AppDataHelperClass{
         return itemsWithResult;
     }
     getListenDurationInSecond(){
-        if (AppGlobal.state.startListenTimaStamp === 0){
+        if (AppGlobal.state.startListenTimeStamp === 0){
             return 0;
         } 
-        let diff =  new Date().getTime() - AppGlobal.state.startListenTimaStamp;
+        let diff =  new Date().getTime() - AppGlobal.state.startListenTimeStamp;
         let result = diff/1000;
         return result;
     }
@@ -454,6 +457,19 @@ class AppDataHelperClass{
         newResult.push(newRec);
         let jsonStrToSave = JSON.stringify(newResult);
         localStorage.setItem(LstorageKey.results, jsonStrToSave);        
+    }
+    startFakeListening(){
+        AppGlobal.dispatch({type:"ActSetAppStatus",newStatus:AppStatusEnum.DlgStartFakeListen});
+        let selItem = this.getSelectedDlgItem();
+        if(selItem){
+            let answerText = (selItem.p2.ru?selItem.p2.ru:selItem.p2.en);
+            let wrdCount = answerText.split(' ').length;
+            let delayForWord = ConfigSettings.prop('dlgSrDuration') as number;
+            let delay = wrdCount * delayForWord*1000;
+            setTimeout(()=>{
+                AppGlobal.dispatch({type:"ActSetAppStatus",newStatus:AppStatusEnum.DlgStopFakeListen});
+            },delay);    
+        }
     }
 }
 

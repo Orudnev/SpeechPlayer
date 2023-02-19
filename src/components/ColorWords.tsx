@@ -43,6 +43,7 @@ export const NumUpDown:FunctionComponent<INupUpDownProps> = (props)=>{
 export const ColorWords:FunctionComponent<IColorWordsProps> = (props)=>{
 
     const allWords = props.text.split(" "); 
+
     const resultWords = (props.recResult && props.recResult.length>0 ? 
             JSON.parse(JSON.stringify(props.recResult)) as SRResultWord[]
             : [] );

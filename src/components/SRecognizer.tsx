@@ -3,7 +3,8 @@ import { createSpeechlySpeechRecognition } from '@speechly/speech-recognition-po
 //@ts-ignore
 import SpeechRecognition, { useSpeechRecognition } from 'react-speech-recognition';
 import { wait } from './AsyncHelper';
-import { langEnum } from '../AppData';
+import { AppStatusEnum, langEnum } from '../AppData';
+import { AppGlobal } from '../App';
 
 const appId = '<INSERT_SPEECHLY_APP_ID_HERE>';
 const SpeechlySpeechRecognition = createSpeechlySpeechRecognition(appId);
@@ -71,7 +72,9 @@ const SRecognizer = (props:ISRecognizerProps) => {
                 resetTranscript();
             }
             setTimeout(()=>{
-                SpeechRecognition.startListening({continuous: true,language: props.lang});    
+                SpeechRecognition.startListening({continuous: true,language: props.lang});
+                lastRecognizedText = "";
+                AppGlobal.dispatch({type:'ActSetAppStatus',newStatus:AppStatusEnum.DlgStartListen});
             },0)
         }
         if(!stubTalkerInstance){
@@ -83,6 +86,7 @@ const SRecognizer = (props:ISRecognizerProps) => {
     if(command == SRCommand.StopListen){
         if(listening){
             SpeechRecognition.stopListening();
+            AppGlobal.dispatch({type:'ActSetAppStatus',newStatus:AppStatusEnum.DlgStopListen});
         }
     }
 

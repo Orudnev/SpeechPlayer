@@ -14,11 +14,12 @@ interface IDlgPlayerProps {
 
 export const PhraseMemorizer: FunctionComponent<IDlgPlayerProps> = (props) => {
     useEffect(() => {
-        if (props.appState.voiceCommand == VoiceCommand.GoNextItem) {
+        if (props.appState.voiceCommand === VoiceCommand.GoNextItem || props.appState.AppStatus === AppStatusEnum.DlgStopFakeListen) {
             let nextIndex = appDataHelper.getNextDlgItemIndex();
             selectNewItem(nextIndex);
         } 
-    }, [props.appState.voiceCommand]);
+    }, [props.appState.voiceCommand,props.appState.AppStatus]);
+    console.log(props.appState.AppStatus);
 
     const selectNewItem = (newItemIndex:number) =>{
         AppGlobal.dispatch({ type: "ActExecSRCommand", command: SRCommand.StopListen });
@@ -32,7 +33,7 @@ export const PhraseMemorizer: FunctionComponent<IDlgPlayerProps> = (props) => {
         AppGlobal.dispatch({ type: 'ActSetAppStatus', newStatus: AppStatusEnum.DlgPaused }); 
         setTimeout(() => {
             AppGlobal.dispatch({ type: 'ActSetAppStatus', newStatus: AppStatusEnum.DlgStarted });                           
-        }, 0);        
+        }, 200);        
     }
 
 
@@ -74,7 +75,12 @@ export const PhraseMemorizer: FunctionComponent<IDlgPlayerProps> = (props) => {
         if(selItem && selItem.p2.ru){
             lng = langEnum.ruRu;
         }
-        AppGlobal.dispatch({ type: 'ActExecSRCommand', command: SRCommand.StartListen,lang:lng});
+        if(ConfigSettings.prop('dlgEnableSR')){
+            AppGlobal.dispatch({ type: 'ActExecSRCommand', command: SRCommand.StartListen,lang:lng});
+        } else {
+            appDataHelper.startFakeListening();
+        }
+
         if(ConfigSettings.dlgRepeat()){
             setTimeout(() => {
                 AppGlobal.dispatch({type:"ActExecSRCommand",command:SRCommand.StopListen});
@@ -100,20 +106,28 @@ export const PhraseMemorizer: FunctionComponent<IDlgPlayerProps> = (props) => {
     let microponeBtnClassStr = (props.appState.SRecognizeCmd == SRCommand.StartListen?"img-microphoneOn":"img-microphoneOff");
     let sayTextItems:ISayItem[] = [];
     if(selItem){
-        if (selItem.p1.en){
-            sayTextItems = [{lang:langEnum.enUs, sayText: selItem.p1.en }];        
-        }
-        if (selItem.p1.ru){
-            sayTextItems = [{lang:langEnum.ruRu, sayText: selItem.p1.ru }];        
-        }        
+        let getTextFromSayItem = (p:any)=>{
+            let result:ISayItem = {lang:langEnum.enUs,sayText:""};
+            if(p.en){
+                result.sayText = p.en;
+            }
+            if(p.ru){
+                result.lang = langEnum.ruRu;
+                result.sayText = p.ru;
+            }
+            return result; 
+        };
+
+        sayTextItems = [getTextFromSayItem(selItem.p1)];    
+        let answerItem = getTextFromSayItem(selItem.p2);    
         if(props.appState.selectedSentenceIndex === 0 ){
-            sayTextItems.push({lang:langEnum.enUs, sayText: selItem!.p2.en });
+            sayTextItems.push(answerItem);
         } else {
-            let sentencies = selItem!.p2.en.split(".");
+            let sentencies = answerItem.sayText.split(".");
             let senttxt = sentencies[props.appState.selectedSentenceIndex-1];
             sayTextItems.push({lang:langEnum.enUs, sayText:senttxt});
         }
-    }    
+    }     
     let nudValue:any = props.appState.selItemIndex;
     let nudLbDisabled = appDataHelper.dlgItemsHistoryStack.length<2;
     if(nudValue === -1){

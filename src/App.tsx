@@ -41,6 +41,8 @@ function App() {
   const [state, dispatch] = useReducer(appReducer, appInitState);
   AppGlobal.state = state;
   AppGlobal.dispatch = dispatch;
+  //@ts-ignore
+  window.appg = AppGlobal;
   return ( 
     <div> 
       <Routes>

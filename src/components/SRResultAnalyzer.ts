@@ -10,8 +10,13 @@ function devideWordsContainingHyphen(inStr: string) {
 }
 
 function filterUnnecessarySymbols(inStr: string) {
-    let result = inStr.replace(/[\.,!?]/g, "");
+    let result = inStr.replace(/[\.,!?;]/g, "");
     result = devideWordsContainingHyphen(result);
+    return result;
+}
+
+function normilizeSymbols(inStr: string){
+    let result = inStr.replace(/ё/g, "е");
     return result;
 }
 
@@ -51,7 +56,7 @@ class SRResultTextAnalyzerClass {
     startCommandWords = ["google", "coco", "go go", "oh"];
     diffText = "";
     SetEtalonText(text: string) {
-        this.etalonText = text;
+        this.etalonText = normilizeSymbols(text);
         this.etalonWords = [];
         let words = filterUnnecessarySymbols(text).split(" ");
         words.forEach(wrd => {
@@ -71,10 +76,8 @@ class SRResultTextAnalyzerClass {
     }
 
     AddNewText(recognizedText: string) {
-        if (recognizedText == undefined) {
-            let s = 1;
-        }
         recognizedText = filterUnnecessarySymbols(recognizedText);
+        recognizedText = normilizeSymbols(recognizedText);
         this.diffText = ""
         let equals = false;
         let prevRecognizedText = AppGlobal.state.lastRecognizedText;
@@ -102,8 +105,9 @@ class SRResultTextAnalyzerClass {
             this.diffText = recognizedText;
         } 
         //console.log("prevRecText",prevRecognizedText);
-        console.log("recText",recognizedText);
-        console.log("diffText",this.diffText);
+        console.log("prevText:",prevRecognizedText);
+        console.log("recText:",recognizedText);
+        console.log("diffText:",this.diffText);
         if (this.isCommandMode) {
             this.processCommand(this.diffText);
             return;

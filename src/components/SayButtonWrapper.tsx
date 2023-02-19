@@ -45,7 +45,9 @@ export const SayButtonWrapper: FunctionComponent<ISayButtonWrapperProps> = (prop
             sayWrapRef.current.getElementsByTagName("button")[0].click();
         }
     };
-    useEffect(()=>{simulateButtonClick();},[currItemIndex]);
+    useEffect(()=>{
+        simulateButtonClick();
+    },[currItemIndex]);
     return(
         <div ref={sayWrapRef} id="SayButtonWrapper" style={{ display: "none" }}>
             <SayButton 
