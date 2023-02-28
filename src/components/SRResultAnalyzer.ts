@@ -41,7 +41,7 @@ interface IVoiceCommandItem {
 }
 
 const voiceCommandWords: IVoiceCommandItem[] = [
-    { key: VoiceCommand.MarkItemAsPassed, words: ["yeah", "yes"] },
+    { key: VoiceCommand.MarkItemAsPassed, words: ["yeah", "yes","я"] },
     { key: VoiceCommand.GoNextItem, words: ["next"] },
     { key: VoiceCommand.ClearListenResultAndListenAgain, words: ["again"] },
     { key: VoiceCommand.GoNextItemSet, words: ["app"] },

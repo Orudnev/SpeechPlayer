@@ -18,6 +18,11 @@ export const PhraseMemorizer: FunctionComponent<IDlgPlayerProps> = (props) => {
             let nextIndex = appDataHelper.getNextDlgItemIndex();
             selectNewItem(nextIndex);
         } 
+        if (props.appState.voiceCommand === VoiceCommand.MarkItemAsPassed){
+            appDataHelper.saveDlgItemResult(true);
+            let nextIndex = appDataHelper.getNextDlgItemIndex();
+            selectNewItem(nextIndex);
+        }
     }, [props.appState.voiceCommand,props.appState.AppStatus]);
     console.log(props.appState.AppStatus);
 
