@@ -9,7 +9,7 @@ interface ISelectDataSourceProps {
 export const SelectDataSource: FunctionComponent<ISelectDataSourceProps> = (props) => {
     return (
         <div className="load-file-page">
-            <div className='app-version'>Version: 3.0.4</div>
+            <div className='app-version'>Version: 3.0.5</div>
             <label >
                 <input type="file" onChange={(e: any) => {
                     let f = e.currentTarget?.files[0];
