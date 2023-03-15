@@ -20,7 +20,7 @@ export const SayButtonWrapper: FunctionComponent<ISayButtonWrapperProps> = (prop
     const [currItemIndex,setCurrItemIndex] = useState(0);
     //const [isPlaying,setIsPlaying] = useState(false);
     let currItem = props.sayItemQueue[currItemIndex];
-    if(!currItem.lang){
+    if(currItem && !currItem.lang){
         currItem.lang = langEnum.enUs;
     }
     let langSelector = (voices: any) => {
@@ -48,6 +48,10 @@ export const SayButtonWrapper: FunctionComponent<ISayButtonWrapperProps> = (prop
     useEffect(()=>{
         simulateButtonClick();
     },[currItemIndex]);
+
+    if (!currItem){
+        return (<div/>);
+    }
     return(
         <div ref={sayWrapRef} id="SayButtonWrapper" style={{ display: "none" }}>
             <SayButton 
