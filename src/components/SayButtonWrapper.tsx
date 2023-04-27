@@ -16,6 +16,11 @@ export interface ISayButtonWrapperProps{
 
 }
 
+const languages = {
+    ru:null,
+    en:null
+}
+
 export const SayButtonWrapper: FunctionComponent<ISayButtonWrapperProps> = (props) => {
     const [currItemIndex,setCurrItemIndex] = useState(0);
     //const [isPlaying,setIsPlaying] = useState(false);
@@ -23,13 +28,40 @@ export const SayButtonWrapper: FunctionComponent<ISayButtonWrapperProps> = (prop
     if(currItem && !currItem.lang){
         currItem.lang = langEnum.enUs;
     }
-    let langSelector = (voices: any) => {
+    const langSelector = (voices: any) => {
+        if(currItem.lang == langEnum.enUs && languages.en){
+            return languages.en;
+        }
+        if(currItem.lang == langEnum.ruRu && languages.ru){
+            return languages.ru;
+        }
+
         let enVoice = "Microsoft Mark - English (United States)";
         let ruVoice = "Google русский";
+
         let voiceName = (currItem.lang == langEnum.enUs ? enVoice : ruVoice);
         let result = voices.find((voice: any) => voice.name === voiceName);
         if(result){
             console.log(result);
+        } else {
+            //console.log("voices:",voices);
+            enVoice = "United States";
+            ruVoice = "Russia";
+            voiceName = (currItem.lang == langEnum.enUs ? enVoice : ruVoice);
+            for(let i=0;i<voices.length;i++){
+                let item=voices[i];
+                if (item.name.includes(voiceName)){
+                    result = item;
+                    break;
+                }
+            }
+        }
+        if(result){
+            if(currItem.lang == langEnum.enUs){
+                languages.en = result;
+            } else {
+                languages.ru = result;
+            }
         }
         return result;
     }

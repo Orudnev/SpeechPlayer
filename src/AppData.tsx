@@ -29,6 +29,12 @@ export enum RoutePath{
     config = "/SpeechPlayer/config"
   }
 
+
+export interface ISayItem{
+    lang?:langEnum;
+    sayText:string;
+}
+
 export enum langEnum {
     enUs = "en-US",
     ruRu = "ru-RU"
@@ -191,12 +197,13 @@ export function appReducer(state:IAppReducerstate,action:AppAction){
             }, 0);
             return newState;
         case 'ActSetAppStatus':
+            console.log(action);
             newState.AppStatus = action.newStatus;
             if(action.newStatus == AppStatusEnum.DlgStartListen){
                 newState.startListenTimeStamp = new Date().getTime();
             } else {
                 newState.startListenTimeStamp = 0;
-            }            
+            } 
             return newState;
         case 'ActSetLastRecognizedText':
             newState.lastRecognizedText = action.text;

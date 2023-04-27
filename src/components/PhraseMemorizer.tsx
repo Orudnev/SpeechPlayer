@@ -6,15 +6,30 @@ import SRecognizer, { SRCommand } from './SRecognizer';
 import { SRResultTextAnalyzer,VoiceCommand } from './SRResultAnalyzer';
 import {ColorWords,NumUpDown} from './ColorWords';
 import {ISayItem} from './SayButtonWrapper';
+import { SayText } from './SayText';
+import { waitWhile } from './AsyncHelper';
 
 
 interface IDlgPlayerProps {
     appState: IAppReducerstate;
 }
 
+function GetTextFromSayItem(p:any):ISayItem{
+    let result:ISayItem = {lang:langEnum.enUs,sayText:""};
+    if(p.en){
+        result.sayText = p.en;
+    }
+    if(p.ru){
+        result.lang = langEnum.ruRu;
+        result.sayText = p.ru;
+    }
+    return result; 
+}
+
 export const PhraseMemorizer: FunctionComponent<IDlgPlayerProps> = (props) => {
     useEffect(() => {
-        if (props.appState.voiceCommand === VoiceCommand.GoNextItem || props.appState.AppStatus === AppStatusEnum.DlgStopFakeListen) {
+        const appStatus = props.appState.AppStatus;
+        if (props.appState.voiceCommand === VoiceCommand.GoNextItem || appStatus === AppStatusEnum.DlgStopFakeListen) {
             let nextIndex = appDataHelper.getNextDlgItemIndex();
             selectNewItem(nextIndex);
         } 
@@ -24,8 +39,12 @@ export const PhraseMemorizer: FunctionComponent<IDlgPlayerProps> = (props) => {
             selectNewItem(nextIndex);
         }
     }, [props.appState.voiceCommand,props.appState.AppStatus]);
-    console.log(props.appState.AppStatus);
+    //console.log(props.appState.AppStatus);
+    let selItem = appDataHelper.getSelectedDlgItem();
 
+
+
+    //Actions
     const selectNewItem = (newItemIndex:number) =>{
         AppGlobal.dispatch({ type: "ActExecSRCommand", command: SRCommand.StopListen });
         AppGlobal.dispatch({ type: "ActExecVoiceCommand", command: VoiceCommand.NoCommand });
@@ -41,8 +60,12 @@ export const PhraseMemorizer: FunctionComponent<IDlgPlayerProps> = (props) => {
         }, 200);        
     }
 
+    const gotoNextItem = ()=>{
+        let nextIndex = appDataHelper.getNextDlgItemIndex();
+        selectNewItem(nextIndex);
+    }
 
-    let selItem = appDataHelper.getSelectedDlgItem();
+    //Handlers
     const handleBtnStartPause = () => {
         if(props.appState.AppStatus === AppStatusEnum.DlgPaused){
             AppGlobal.dispatch({ type: 'ActSetAppStatus', newStatus: AppStatusEnum.DlgStarted });
@@ -58,41 +81,42 @@ export const PhraseMemorizer: FunctionComponent<IDlgPlayerProps> = (props) => {
             AppGlobal.dispatch({ type: 'ActSetAppStatus', newStatus: AppStatusEnum.DlgPaused });
         }
     };
-    const handleBeforeSay = (sayTextItemIndex:number) => {
-        let p=props;
-        if (sayTextItemIndex == 0 ) {
-            if(props.appState.AppStatus === AppStatusEnum.DlgSayAnswer){
-                return false;
-            }
-            AppGlobal.dispatch({ type: 'ActSetAppStatus', newStatus: AppStatusEnum.DlgShowItemAndSayQuestion });
-        }
-        if (sayTextItemIndex == 1) {
-            AppGlobal.dispatch({ type: 'ActSetAppStatus', newStatus: AppStatusEnum.DlgSayAnswer });
-            if(!ConfigSettings.dlgSayAnswer()){
-                handleAllSayItemsSaid();
-                return false;
-            }
-        }
-        return true;
-    };
-    const handleAllSayItemsSaid = () => {
-        let lng = langEnum.enUs;
-        if(selItem && selItem.p2.ru){
-            lng = langEnum.ruRu;
-        }
-        if(ConfigSettings.prop('dlgEnableSR')){
-            AppGlobal.dispatch({ type: 'ActExecSRCommand', command: SRCommand.StartListen,lang:lng});
-        } else {
-            appDataHelper.startFakeListening();
-        }
 
-        if(ConfigSettings.dlgRepeat()){
-            setTimeout(() => {
-                AppGlobal.dispatch({type:"ActExecSRCommand",command:SRCommand.StopListen});
-                AppGlobal.dispatch({type:"ActSetAppStatus",newStatus:AppStatusEnum.DlgSayAnswer});
-            }, 5000);
-        }
-    };
+    // const handleBeforeSay = (sayTextItemIndex:number) => {
+    //     let p=props;
+    //     if (sayTextItemIndex == 0 ) {
+    //         if(props.appState.AppStatus === AppStatusEnum.DlgSayAnswer){
+    //             return false;
+    //         }
+    //         AppGlobal.dispatch({ type: 'ActSetAppStatus', newStatus: AppStatusEnum.DlgShowItemAndSayQuestion });
+    //     }
+    //     if (sayTextItemIndex == 1) {
+    //         AppGlobal.dispatch({ type: 'ActSetAppStatus', newStatus: AppStatusEnum.DlgSayAnswer });
+    //         if(!ConfigSettings.dlgSayAnswer()){
+    //             handleAllSayItemsSaid();
+    //             return false;
+    //         }
+    //     }
+    //     return true;
+    // };
+    // const handleAllSayItemsSaid = () => {
+    //     let lng = langEnum.enUs;
+    //     if(selItem && selItem.p2.ru){
+    //         lng = langEnum.ruRu;
+    //     }
+    //     if(ConfigSettings.prop('dlgEnableSR')){
+    //         AppGlobal.dispatch({ type: 'ActExecSRCommand', command: SRCommand.StartListen,lang:lng});
+    //     } else {
+    //         appDataHelper.startFakeListening();
+    //     }
+
+    //     if(ConfigSettings.dlgRepeat()){
+    //         setTimeout(() => {
+    //             AppGlobal.dispatch({type:"ActExecSRCommand",command:SRCommand.StopListen});
+    //             AppGlobal.dispatch({type:"ActSetAppStatus",newStatus:AppStatusEnum.DlgSayAnswer});
+    //         }, 5000);
+    //     }
+    // };
 
 
     let questionTextJsxShow = false;
@@ -109,44 +133,57 @@ export const PhraseMemorizer: FunctionComponent<IDlgPlayerProps> = (props) => {
     let isPausedStatus = (props.appState.AppStatus == AppStatusEnum.DlgPaused);
     let playBtnClassStr = (isPausedStatus ? "toolbar-button toolbar-button__disabled" : "toolbar-button toolbar-button__enabled");
     let microponeBtnClassStr = (props.appState.SRecognizeCmd == SRCommand.StartListen?"img-microphoneOn":"img-microphoneOff");
-    let sayTextItems:ISayItem[] = [];
+    let answerText = " "; 
     if(selItem){
-        let getTextFromSayItem = (p:any)=>{
-            let result:ISayItem = {lang:langEnum.enUs,sayText:""};
-            if(p.en){
-                result.sayText = p.en;
-            }
-            if(p.ru){
-                result.lang = langEnum.ruRu;
-                result.sayText = p.ru;
-            }
-            return result; 
-        };
-
-        sayTextItems = [getTextFromSayItem(selItem.p1)];    
-        let answerItem = getTextFromSayItem(selItem.p2);    
-        if(props.appState.selectedSentenceIndex === 0 ){
-            sayTextItems.push(answerItem);
-        } else {
-            let sentencies = answerItem.sayText.split(".");
-            let senttxt = sentencies[props.appState.selectedSentenceIndex-1];
-            sayTextItems.push({lang:langEnum.enUs, sayText:senttxt});
-        }
-    }     
-    let nudValue:any = props.appState.selItemIndex;
-    let nudLbDisabled = appDataHelper.dlgItemsHistoryStack.length<2;
-    if(nudValue === -1){
-        nudValue = "";
-    }   
-    let answerText = " ";  
-    if(selItem){
+        const sayTextItems:ISayItem[] = [];
+        const questionItem = GetTextFromSayItem(selItem.p1);
+        const answerItem = GetTextFromSayItem(selItem.p2);    
         if(selItem.p2.ru){
             answerText = (selItem.p2.ru)    
         }
         if(selItem.p2.en){
             answerText = (selItem.p2.en)    
         }
-    }
+        if (props.appState.AppStatus === AppStatusEnum.DlgStarted){            
+            AppGlobal.dispatch({type:"ActSetAppStatus",newStatus:AppStatusEnum.DlgShowItemAndSayQuestion});
+        }
+        if(props.appState.AppStatus === AppStatusEnum.DlgShowItemAndSayQuestion){
+            SayText.addMessage(questionItem,()=>{
+                if(ConfigSettings.dlgSayAnswer()){                
+                    AppGlobal.dispatch({type:"ActSetAppStatus",newStatus:AppStatusEnum.DlgSayAnswer});
+                } else if(ConfigSettings.prop('dlgEnableSR')){
+                    AppGlobal.dispatch({type:"ActSetAppStatus",newStatus:AppStatusEnum.DlgStartListen});
+                } else {
+                    // (async ()=>{
+                    //     await waitWhile(()=>{return !SayText.speaking()});
+                    //     gotoNextItem();
+                    // })();
+                }    
+            });
+        }
+        if (props.appState.AppStatus === AppStatusEnum.DlgSayAnswer){            
+            SayText.addMessage(answerItem,()=>{
+                AppGlobal.dispatch({type:"ActSetAppStatus",newStatus:AppStatusEnum.DlgStartFakeListen});                    
+            });
+        }
+        if (props.appState.AppStatus === AppStatusEnum.DlgStartFakeListen){
+            setTimeout(()=>{
+                AppGlobal.dispatch({type:"ActSetAppStatus",newStatus:AppStatusEnum.DlgStopFakeListen});   
+            },1000);
+        }         
+        if (props.appState.AppStatus === AppStatusEnum.DlgStopFakeListen){
+            //gotoNextItem();
+        }
+
+    } 
+    
+    let nudValue:any = props.appState.selItemIndex;
+    let nudLbDisabled = appDataHelper.dlgItemsHistoryStack.length<2;
+    if(nudValue === -1){
+        nudValue = "";
+    }   
+
+    
     return (
         <div className="splayer-page">
             <div className="splayer-page__toolbar">
@@ -159,8 +196,7 @@ export const PhraseMemorizer: FunctionComponent<IDlgPlayerProps> = (props) => {
                             selectNewItem(prevIndex);
                         }
                     }} onRightBtnClick={()=>{
-                        let nextIndex = appDataHelper.getNextDlgItemIndex();
-                        selectNewItem(nextIndex);                        
+                        gotoNextItem();
                     }} />
                 <button className={"toolbar-button"} onClick={() => {
                         AppGlobal.navigate(RoutePath.config);
@@ -191,9 +227,9 @@ export const PhraseMemorizer: FunctionComponent<IDlgPlayerProps> = (props) => {
                 <div className="popup-container">
                     <div className="popup-content">Voice command</div>
                 </div>}
-            {sayButtonWrapperJsxShow &&
+            {/* {sayButtonWrapperJsxShow &&
                 <SayButtonWrapper sayItemQueue={sayTextItems}
-                    onBeforeSay={handleBeforeSay} onAllItemsSaid={handleAllSayItemsSaid} />}
+                    onBeforeSay={handleBeforeSay} onAllItemsSaid={handleAllSayItemsSaid} />} */}
 
         </div> 
     );
